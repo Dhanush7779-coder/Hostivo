@@ -5,16 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.PublishedWithChanges
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,14 +24,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hprams.ui.components.*
 import com.example.hprams.theme.isAppDarkTheme
+import com.example.hprams.theme.AccentColor
 import com.example.hprams.data.HostelDataStore
 import com.example.hprams.data.RoomChangeRequest
 
 data class RoomItem(
     val number: String,
-    val block: String, // "Block A", "Block B", "Block C", "Block D"
+    val block: String,
     val type: String,
-    val floor: String, // "1", "2", "3", "4"
+    val floor: String,
     val isAvailable: Boolean
 )
 
@@ -59,61 +56,41 @@ fun RoomAvailabilityScreen(
     val studentGender = currentStudent?.gender ?: "Female"
     val studentName = currentStudent?.name ?: "Alex Vance"
     val studentRoll = currentStudent?.roll ?: "231801380001"
-    val currentRoomNum = currentStudent?.room ?: "402-B"
+    val currentRoomNum = currentStudent?.room ?: "101"
+    val currentBlock = currentStudent?.block ?: (if (studentGender == "Male") "Block A" else "Block C")
 
-    // Gender-based wing allocation constraints (Boys = A&B, Girls = C&D)
-    val availableBlocks = if (studentGender == "Male") {
+    // Gender-based wing allocation constraints
+    val studentBlocks = if (studentGender == "Male") {
         listOf("Block A", "Block B")
     } else {
         listOf("Block C", "Block D")
     }
 
-    var selectedBlock by remember { mutableStateOf(availableBlocks.first()) }
-    var selectedFloor by remember { mutableStateOf("All") }
-    var showBlockDropdown by remember { mutableStateOf(false) }
+    var selectedBlock by remember { mutableStateOf(studentBlocks.first()) }
     var showChangeDialog by remember { mutableStateOf(false) }
     var requestedRoom by remember { mutableStateOf("") }
-    var paymentPreference by remember { mutableStateOf("Pay Later") } // "Pay Now" or "Pay Later" (Section 8)
+    var paymentPreference by remember { mutableStateOf("Pay Later") }
+    var refundOption by remember { mutableStateOf("Back to Source Account") }
+    var refundDetails by remember { mutableStateOf("") }
 
     // Search active change requests for this student
     val activeRequest = HostelDataStore.roomChangeRequests.find { 
-        it.studentRoll == studentRoll && it.status != "Approved" 
+        it.studentRoll == studentRoll && it.status == "Pending" 
     }
 
-    // Static master rooms data matching blocks A, B, C, D
-    val roomsList = remember {
-        listOf(
-            RoomItem("101", "Block A", "5 Sharing Non-AC", "1", true),
-            RoomItem("102", "Block A", "4 Sharing AC", "1", false),
-            RoomItem("201", "Block A", "4 Sharing Non-AC", "2", true),
-            RoomItem("202", "Block A", "3 Sharing AC", "2", true),
-            
-            RoomItem("103", "Block B", "5 Sharing Non-AC", "1", true),
-            RoomItem("203", "Block B", "3 Sharing AC", "2", false),
-            RoomItem("303", "Block B", "2 Sharing AC", "3", true),
-
-            RoomItem("104", "Block C", "5 Sharing Non-AC", "1", true),
-            RoomItem("105", "Block C", "4 Sharing AC", "1", true),
-            RoomItem("204", "Block C", "4 Sharing Non-AC", "2", false),
-            RoomItem("304", "Block C", "3 Sharing AC", "3", true),
-
-            RoomItem("106", "Block D", "5 Sharing Non-AC", "1", true),
-            RoomItem("206", "Block D", "4 Sharing AC", "2", true),
-            RoomItem("406", "Block D", "2 Sharing AC", "4", true)
-        )
-    }
-
-    // Filter rooms dynamically by Block AND Floor (Section 3)
-    val filteredRooms = remember(selectedBlock, selectedFloor) {
-        roomsList.filter { room ->
-            val matchBlock = room.block == selectedBlock
-            val matchFloor = if (selectedFloor == "All") true else room.floor == selectedFloor
-            matchBlock && matchFloor
+    // Dynamic master rooms data matching blocks A, B, C, D using RoomRules
+    val roomsList = remember(HostelDataStore.students.size) {
+        val list = mutableListOf<RoomItem>()
+        studentBlocks.forEach { block ->
+            (101..120).forEach { rNum ->
+                val roomNumberStr = rNum.toString()
+                val rType = com.example.hprams.data.RoomRules.getRoomType(roomNumberStr)
+                val rFloor = com.example.hprams.data.RoomRules.getFloor(roomNumberStr)
+                val rAvail = com.example.hprams.data.RoomRules.isRoomAvailable(block, roomNumberStr)
+                list.add(RoomItem(roomNumberStr, block, rType, rFloor, rAvail))
+            }
         }
-    }
-
-    val vacantRoomsForSelection = remember(selectedBlock) {
-        roomsList.filter { it.block == selectedBlock && it.isAvailable }.map { it.number }
+        list
     }
 
     GlassBackground(modifier = modifier) {
@@ -122,7 +99,7 @@ fun RoomAvailabilityScreen(
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
-                            "ROOM AVAILABILITY",
+                            "ROOM CHANGE CONTROL",
                             color = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66),
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
@@ -148,260 +125,52 @@ fun RoomAvailabilityScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Block & Floor Filters Card
+                    // Current allocation info Card
                     GlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "WING:",
-                                    color = subTextColor,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontFamily = FontFamily.Monospace,
-                                    modifier = Modifier.width(60.dp)
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .background(
-                                            if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f),
-                                            RoundedCornerShape(8.dp)
-                                        )
-                                        .clickable { showBlockDropdown = true }
-                                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(selectedBlock, color = textColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                        Icon(Icons.Default.ExpandMore, contentDescription = null, tint = subTextColor, modifier = Modifier.size(16.dp))
-                                    }
-                                    DropdownMenu(
-                                        expanded = showBlockDropdown,
-                                        onDismissRequest = { showBlockDropdown = false },
-                                        modifier = Modifier.background(if (isDark) Color(0xFF101415) else Color(0xFFE3EAE9))
-                                    ) {
-                                        availableBlocks.forEach { block ->
-                                            DropdownMenuItem(
-                                                text = { Text(block, color = textColor) },
-                                                onClick = {
-                                                    selectedBlock = block
-                                                    showBlockDropdown = false
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(
+                                "Your Current Room Allocation",
+                                color = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Text("Current Wing/Block: $currentBlock", color = textColor, fontSize = 13.sp)
+                            Text("Current Room Number: $currentRoomNum", color = textColor, fontSize = 13.sp)
+                            
+                            val currentIsAc = com.example.hprams.data.RoomRules.isAc(currentRoomNum)
+                            Text("Room Type: ${if (currentIsAc) "AC Room" else "Non-AC Room"}", color = subTextColor, fontSize = 12.sp)
 
-                            // Floor selection row (Section 3)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "FLOOR:",
-                                    color = subTextColor,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontFamily = FontFamily.Monospace,
-                                    modifier = Modifier.width(60.dp)
-                                )
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    listOf("All", "1", "2", "3", "4").forEach { floor ->
-                                        val isActive = selectedFloor == floor
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .background(
-                                                    if (isActive) {
-                                                        if (isDark) Color(0xFF29FCF3).copy(alpha = 0.2f) else Color(0xFF006A66).copy(alpha = 0.2f)
-                                                    } else {
-                                                        if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f)
-                                                    },
-                                                    RoundedCornerShape(8.dp)
-                                                )
-                                                .clickable { selectedFloor = floor }
-                                                .padding(vertical = 6.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = floor,
-                                                color = if (isActive) {
-                                                    if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-                                                } else subTextColor,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 11.sp
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Grid list displaying filtered floor-wise rooms
-                    if (filteredRooms.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("No rooms found on Floor $selectedFloor in $selectedBlock.", color = subTextColor)
-                        }
-                    } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            items(filteredRooms, key = { "${it.block}-${it.number}" }) { room ->
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(
-                                            if (isDark) Color.White.copy(alpha = 0.05f)
-                                            else Color.White.copy(alpha = 0.8f)
-                                        )
-                                        .border(
-                                            1.dp,
-                                            if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f),
-                                            RoundedCornerShape(16.dp)
-                                        )
-                                        .padding(10.dp)
-                                ) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text("Room ${room.number}", color = textColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(
-                                                        if (room.isAvailable) Color(0xFF027E3D).copy(alpha = 0.15f) else Color(0xFF93000A).copy(alpha = 0.15f),
-                                                        RoundedCornerShape(4.dp)
-                                                    )
-                                                    .padding(horizontal = 4.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    if (room.isAvailable) "VACANT" else "FULL",
-                                                    color = if (room.isAvailable) Color(0xFF76DB8F) else Color(0xFFFFB4AB),
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontSize = 8.sp,
-                                                    fontFamily = FontFamily.Monospace
-                                                )
-                                            }
-                                        }
-                                        Text(room.type, color = subTextColor, style = MaterialTheme.typography.bodySmall, fontSize = 11.sp)
-                                        Text("Floor: ${room.floor}", color = subTextColor, style = MaterialTheme.typography.bodySmall, fontSize = 10.sp)
-
-                                        if (room.isAvailable) {
-                                            Button(
-                                                onClick = { onApplyClick(room.number) },
-                                                shape = RoundedCornerShape(8.dp),
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-                                                ),
-                                                contentPadding = PaddingValues(vertical = 4.dp, horizontal = 12.dp),
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(26.dp)
-                                            ) {
-                                                Text(
-                                                    "Apply",
-                                                    color = if (isDark) Color(0xFF003735) else Color.White,
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                        } else {
-                                            Spacer(modifier = Modifier.height(26.dp))
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Room Allocation & Change Panel (Moved to Bottom - Section 2)
-                    GlassCard(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(Icons.Default.PublishedWithChanges, contentDescription = null, tint = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66), modifier = Modifier.size(18.dp))
-                                Text("Room Allocation & Change", color = textColor, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            }
+                            Divider(color = Color.White.copy(alpha = 0.1f))
 
                             if (activeRequest != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            when (activeRequest.status) {
-                                                "Rejected" -> Color(0xFF93000A).copy(alpha = 0.15f)
-                                                else -> Color(0xFFB89400).copy(alpha = 0.15f)
-                                            },
-                                            RoundedCornerShape(8.dp)
-                                        )
-                                        .padding(8.dp)
-                                ) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Text(
-                                            "STATUS: ${activeRequest.status.uppercase()}",
-                                            color = when (activeRequest.status) {
-                                                "Rejected" -> Color(0xFFFFB4AB)
-                                                else -> Color(0xFFFFD43F)
-                                            },
-                                            fontWeight = FontWeight.Bold,
-                                            fontFamily = FontFamily.Monospace,
-                                            fontSize = 11.sp
-                                        )
-                                        Text("Requested Room: Room ${activeRequest.requestedRoom} (${activeRequest.currentRoom} -> ${activeRequest.requestedRoom})", color = textColor, fontSize = 12.sp)
-                                        if (activeRequest.status == "Rejected") {
-                                            Text("Reason: ${activeRequest.rejectReason}", color = Color(0xFFFFB4AB), fontSize = 11.sp)
-                                        }
-                                    }
-                                }
-
-                                if (activeRequest.status == "Rejected") {
-                                    GlassButton(
-                                        text = "Request Again",
-                                        onClick = {
-                                            HostelDataStore.roomChangeRequests.remove(activeRequest)
-                                        }
-                                    )
-                                }
+                                Text("Pending Room Change Request:", color = AccentColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Requested Room: ${activeRequest.requestedRoom} (${selectedBlock})", color = textColor, fontSize = 12.sp)
+                                Text("Status: ${activeRequest.status}", color = AccentColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             } else {
-                                Text(
-                                    "Request to change your current room assignment to a different block wing or room type.",
-                                    color = subTextColor,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = 11.sp
-                                )
-                                GlassButton(
-                                    text = "Submit Change Request",
-                                    onClick = { showChangeDialog = true }
-                                )
+                                Button(
+                                    onClick = {
+                                        requestedRoom = ""
+                                        showChangeDialog = true
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)),
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                                ) {
+                                    Text("Apply for Room Change", color = if (isDark) Color(0xFF003735) else Color.White)
+                                }
                             }
+                        }
+                    }
+
+                    // Room Details Map CheatSheet
+                    GlassCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Hostel Room Map & Rules Details", color = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("• Floor 1: Rooms 101-105 (4-Sharing, Non-AC) | 106-107 (4-Sharing, AC) | 108-110 (6-Sharing, Non-AC)", color = subTextColor, fontSize = 11.sp)
+                            Text("• Floor 2: Rooms 111-114 (3-Sharing, Non-AC) | 115-117 (3-Sharing, AC) | 118-120 (6-Sharing, Non-AC)", color = subTextColor, fontSize = 11.sp)
                         }
                     }
                 }
@@ -419,68 +188,104 @@ fun RoomAvailabilityScreen(
         }
     }
 
-    // Room Selection Dialog
+    // Room Selection & Shifting Request Dialog
     if (showChangeDialog) {
         AlertDialog(
             onDismissRequest = { showChangeDialog = false },
             title = {
                 Text(
-                    "Select Room for Change",
+                    "Apply for Room Change",
                     color = textColor,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Select a vacant room in $selectedBlock:", color = subTextColor, fontSize = 14.sp)
-                    if (vacantRoomsForSelection.isEmpty()) {
-                        Text("No vacant rooms in this wing.", color = Color(0xFFFFB4AB), fontWeight = FontWeight.Bold)
-                    } else {
-                        vacantRoomsForSelection.forEach { roomNum ->
-                            val isSelected = requestedRoom == roomNum
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        if (isSelected) {
-                                            if (isDark) Color(0xFF29FCF3).copy(alpha = 0.15f) else Color(0xFF006A66).copy(alpha = 0.15f)
-                                        } else {
-                                            if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("Select a Room to occupy from blocks in your scope:", color = subTextColor, fontSize = 13.sp)
+
+                    // Scrollable List of All Rooms & Occupancy
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 240.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            roomsList.forEach { room ->
+                                val currentCount = com.example.hprams.data.RoomRules.getCurrentOccupantsCount(room.block, room.number)
+                                val maxCap = com.example.hprams.data.RoomRules.getRoomCapacity(room.number)
+                                val isSelected = requestedRoom == room.number && selectedBlock == room.block
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (isSelected) AccentColor.copy(alpha = 0.25f)
+                                            else Color.White.copy(alpha = 0.05f)
+                                        )
+                                        .clickable {
+                                            requestedRoom = room.number
+                                            selectedBlock = room.block
                                         }
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (isSelected) {
-                                            if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-                                        } else Color.Transparent,
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .clickable { requestedRoom = roomNum }
-                                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                            ) {
-                                Text("Room $roomNum (Vacant)", color = textColor, fontWeight = FontWeight.SemiBold)
+                                        .padding(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text("Room ${room.number} (${room.block})", color = textColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            Text(room.type, color = subTextColor, fontSize = 11.sp)
+                                        }
+                                        Text(
+                                            text = "$currentCount / $maxCap occupied",
+                                            color = if (currentCount < maxCap) Color(0xFF81C784) else Color(0xFFE57373),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
 
-                    // Display fee difference calculations and Pay Now / Pay Later options (Section 8)
+                    // Dynamically calculate and display Shifting Fees
                     if (requestedRoom.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Divider(color = subTextColor.copy(alpha = 0.2f))
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
-                        // Shifting Non-AC (current 101/104 Non-AC) to AC room
-                        val isShiftingToAC = roomsList.find { it.number == requestedRoom }?.type?.contains("AC") == true
-                        val diffAmount = if (isShiftingToAC) "Rs. 20,000" else "Rs. 0"
+                        val currentIsAc = com.example.hprams.data.RoomRules.isAc(currentRoomNum)
+                        val currentPrice = if (currentIsAc) 100000 else 80000
 
-                        Text("Shifting Fee Difference: $diffAmount", color = textColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        if (isShiftingToAC) {
+                        val requestedIsAc = com.example.hprams.data.RoomRules.isAc(requestedRoom)
+                        val requestedPrice = if (requestedIsAc) 100000 else 80000
+
+                        val priceDiff = requestedPrice - currentPrice
+
+                        if (priceDiff == 0) {
+                            Text("Shifting Fee: Rs. 0 (Same Room Type)", color = textColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        } else if (priceDiff > 0) {
+                            // Charge is higher
+                            Text("Shifting Fee Due: Rs. $priceDiff", color = textColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Text("Non-AC Sharing (Rs. 80,000/yr) -> AC Sharing (Rs. 1,00,000/yr)", color = subTextColor, fontSize = 11.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
+                            
                             Text("Payment Mode for Shifting Difference:", color = textColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -492,18 +297,8 @@ fun RoomAvailabilityScreen(
                                             .weight(1f)
                                             .clip(RoundedCornerShape(8.dp))
                                             .background(
-                                                if (isSelected) {
-                                                    if (isDark) Color(0xFF29FCF3).copy(alpha = 0.15f) else Color(0xFF006A66).copy(alpha = 0.15f)
-                                                } else {
-                                                    if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)
-                                                }
-                                            )
-                                            .border(
-                                                1.dp,
-                                                if (isSelected) {
-                                                    if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-                                                } else Color.Transparent,
-                                                RoundedCornerShape(8.dp)
+                                                if (isSelected) AccentColor.copy(alpha = 0.2f)
+                                                else Color.White.copy(alpha = 0.05f)
                                             )
                                             .clickable { paymentPreference = pref }
                                             .padding(vertical = 10.dp),
@@ -513,6 +308,40 @@ fun RoomAvailabilityScreen(
                                     }
                                 }
                             }
+                        } else {
+                            // New room is cheaper, refund is due
+                            val refundAmount = kotlin.math.abs(priceDiff)
+                            Text("Cheaper Room Refund Due: Rs. $refundAmount", color = Color(0xFF81C784), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("AC Sharing (Rs. 1,00,000/yr) -> Non-AC Sharing (Rs. 80,000/yr)", color = subTextColor, fontSize = 11.sp)
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text("Select Refund Destination Option:", color = textColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("Back to Source Account", "Transfer to College Fees", "UPI / Bank Account").forEach { opt ->
+                                    val isSelected = refundOption == opt
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { refundOption = opt }
+                                            .padding(vertical = 4.dp)
+                                    ) {
+                                        RadioButton(selected = isSelected, onClick = { refundOption = opt })
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(opt, color = textColor, fontSize = 12.sp)
+                                    }
+                                }
+                            }
+
+                            if (refundOption == "UPI / Bank Account") {
+                                OutlinedTextField(
+                                    value = refundDetails,
+                                    onValueChange = { refundDetails = it },
+                                    label = { Text("UPI ID or Bank Account Details") },
+                                    placeholder = { Text("e.g. upi@id or AccNo: 123, IFSC: ABC") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     }
                 }
@@ -521,39 +350,41 @@ fun RoomAvailabilityScreen(
                 if (requestedRoom.isNotEmpty()) {
                     Button(
                         onClick = {
-                            val isShiftingToAC = roomsList.find { it.number == requestedRoom }?.type?.contains("AC") == true
-                            val feeDiff = if (isShiftingToAC) "Rs. 20,000" else "Rs. 0"
+                            val currentIsAc = com.example.hprams.data.RoomRules.isAc(currentRoomNum)
+                            val currentPrice = if (currentIsAc) 100000 else 80000
+                            val requestedIsAc = com.example.hprams.data.RoomRules.isAc(requestedRoom)
+                            val requestedPrice = if (requestedIsAc) 100000 else 80000
+                            val priceDiff = requestedPrice - currentPrice
 
-                            // Handle pay now / pay later (Section 8)
-                            if (isShiftingToAC) {
+                            if (priceDiff > 0) {
                                 if (paymentPreference == "Pay Now") {
-                                    Toast.makeText(context, "Paid Shifting Fee of $feeDiff successfully!", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, "Paid Shifting Fee of Rs. $priceDiff successfully!", Toast.LENGTH_LONG).show()
                                 } else {
-                                    // Add as unpaid charge item
                                     HostelDataStore.fines.add(
                                         com.example.hprams.data.FineItem(
                                             id = "CHG-${(100..999).random()}",
                                             studentRoll = studentRoll,
-                                            amount = feeDiff,
+                                            amount = "Rs. $priceDiff",
                                             reason = "Shifting Difference Fee (Room $currentRoomNum -> $requestedRoom)",
                                             status = "Unpaid"
                                         )
                                     )
-                                    Toast.makeText(context, "Rs. 20,000 added as outstanding charge to your Finance dashboard.", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, "Rs. $priceDiff added as outstanding charge to your Finance dashboard.", Toast.LENGTH_LONG).show()
                                 }
                             }
 
-                            HostelDataStore.roomChangeRequests.add(
-                                RoomChangeRequest(
-                                    id = "REQ-${(1000..9999).random()}",
-                                    studentRoll = studentRoll,
-                                    studentName = studentName,
-                                    currentRoom = currentRoomNum,
-                                    requestedRoom = requestedRoom,
-                                    gender = studentGender,
-                                    status = "Pending"
-                                )
+                            val newReq = RoomChangeRequest(
+                                id = "REQ-${(1000..9999).random()}",
+                                studentRoll = studentRoll,
+                                studentName = studentName,
+                                currentRoom = currentRoomNum,
+                                requestedRoom = requestedRoom,
+                                gender = studentGender,
+                                status = "Pending",
+                                refundOption = if (priceDiff < 0) refundOption else "",
+                                refundDetails = if (priceDiff < 0 && refundOption == "UPI / Bank Account") refundDetails else ""
                             )
+                            HostelDataStore.saveRoomChange(newReq)
                             Toast.makeText(context, "Room change request submitted for Room $requestedRoom!", Toast.LENGTH_LONG).show()
                             showChangeDialog = false
                         },

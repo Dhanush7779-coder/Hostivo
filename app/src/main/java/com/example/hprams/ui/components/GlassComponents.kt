@@ -12,7 +12,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -23,18 +26,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import com.example.hprams.theme.BackgroundGradEnd
-import com.example.hprams.theme.BackgroundGradStart
-import com.example.hprams.theme.isAppDarkTheme
+import com.example.hprams.theme.*
 
 @Composable
 fun getAppTextColor(): Color {
-    return if (isAppDarkTheme()) Color.White else Color(0xFF101415)
+    return if (isAppDarkTheme()) DarkTextColor else LightTextColor
 }
 
 @Composable
 fun getAppSubTextColor(): Color {
-    return if (isAppDarkTheme()) Color(0xFFB9CAC8) else Color(0xFF4A5568)
+    return if (isAppDarkTheme()) DarkSubTextColor else LightSubTextColor
 }
 
 @Composable
@@ -43,71 +44,56 @@ fun GlassBackground(
     content: @Composable BoxScope.() -> Unit
 ) {
     val isDark = isAppDarkTheme()
+    val bgColor = if (isDark) DarkBg else LightBg
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.linearGradient(
-                    colors = if (isDark) listOf(BackgroundGradStart, BackgroundGradEnd)
-                             else listOf(Color(0xFFEAF5F4), Color(0xFFCFEBE8))
-                )
-            )
+            .background(bgColor)
     ) {
-        // Ambient Blob 1 (Top Left)
-        Box(
-            modifier = Modifier
-                .offset(x = (-80).dp, y = (-80).dp)
-                .size(320.dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            if (isDark) Color(0xFF29FCF3).copy(alpha = 0.15f)
-                            else Color(0xFF00ACC1).copy(alpha = 0.15f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
-        // Ambient Blob 2 (Bottom Right)
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = 100.dp, y = 100.dp)
-                .size(420.dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            if (isDark) Color(0xFF027E3D).copy(alpha = 0.12f)
-                            else Color(0xFF4CAF50).copy(alpha = 0.12f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
         content()
-
-        // Floating Sun/Moon Theme Toggle Icon (Section 2)
-        IconButton(
-            onClick = {
-                com.example.hprams.theme.ThemeManager.themeSetting = if (isDark) "Light" else "Dark"
-            },
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 45.dp, end = 16.dp)
-                .size(40.dp)
-                .background(
-                    if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.05f),
-                    RoundedCornerShape(20.dp)
-                )
-        ) {
-            Icon(
-                imageVector = if (isDark) Icons.Default.WbSunny else Icons.Default.NightsStay,
-                contentDescription = "Toggle Theme Preference",
-                tint = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66),
-                modifier = Modifier.size(20.dp)
-            )
-        }
     }
+}
+
+// Raised neumorphic modifier
+fun Modifier.neumorphicCard(isDark: Boolean, cornerRadius: Float = 48f): Modifier = this.drawBehind {
+    val shadowColor = if (isDark) DarkShadow else LightShadow
+    val highlightColor = if (isDark) DarkHighlight else LightHighlight
+    
+    // Bottom-right dark shadow
+    drawRoundRect(
+        color = shadowColor.copy(alpha = 0.8f),
+        topLeft = Offset(12f, 12f),
+        size = size,
+        cornerRadius = CornerRadius(cornerRadius, cornerRadius)
+    )
+    // Top-left light highlight
+    drawRoundRect(
+        color = highlightColor.copy(alpha = 0.9f),
+        topLeft = Offset(-12f, -12f),
+        size = size,
+        cornerRadius = CornerRadius(cornerRadius, cornerRadius)
+    )
+}
+
+// Sunken neumorphic modifier (for fields)
+fun Modifier.neumorphicSunken(isDark: Boolean, cornerRadius: Float = 36f): Modifier = this.drawBehind {
+    val shadowColor = if (isDark) DarkShadow else LightShadow
+    val highlightColor = if (isDark) DarkHighlight else LightHighlight
+    
+    // Top-left dark shadow
+    drawRoundRect(
+        color = shadowColor.copy(alpha = 0.5f),
+        topLeft = Offset(4f, 4f),
+        size = size,
+        cornerRadius = CornerRadius(cornerRadius, cornerRadius)
+    )
+    // Bottom-right light highlight
+    drawRoundRect(
+        color = highlightColor.copy(alpha = 0.6f),
+        topLeft = Offset(-4f, -4f),
+        size = size,
+        cornerRadius = CornerRadius(cornerRadius, cornerRadius)
+    )
 }
 
 @Composable
@@ -116,33 +102,16 @@ fun GlassCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val isDark = isAppDarkTheme()
+    val bgColor = if (isDark) DarkBg else LightBg
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(
-                if (isDark) Color.White.copy(alpha = 0.05f)
-                else Color.White.copy(alpha = 0.6f)
-            )
-            .border(
-                BorderStroke(
-                    width = 1.dp,
-                    brush = Brush.linearGradient(
-                        colors = if (isDark) listOf(
-                            Color.White.copy(alpha = 0.15f),
-                            Color.White.copy(alpha = 0.02f)
-                        ) else listOf(
-                            Color.Black.copy(alpha = 0.15f),
-                            Color.Black.copy(alpha = 0.02f)
-                        )
-                    )
-                ),
-                shape = RoundedCornerShape(24.dp)
-            )
-            .padding(24.dp)
+            .neumorphicCard(isDark)
+            .clip(RoundedCornerShape(16.dp))
+            .background(bgColor)
+            .padding(16.dp)
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             content = content
         )
     }
@@ -153,47 +122,62 @@ fun GlassButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     icon: @Composable (() -> Unit)? = null
 ) {
     val isDark = isAppDarkTheme()
-    Button(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent
-        ),
-        contentPadding = PaddingValues(vertical = 16.dp, horizontal = 24.dp),
+    val bgColor = if (isDark) DarkBg else LightBg
+    val shadowColor = if (isDark) DarkShadow else LightShadow
+    val highlightColor = if (isDark) DarkHighlight else LightHighlight
+    val contentColor = if (enabled) AccentColor else getAppSubTextColor()
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                Brush.linearGradient(
-                    colors = if (isDark) listOf(
-                        Color(0xFF29FCF3).copy(alpha = 0.8f),
-                        Color(0xFF29FCF3).copy(alpha = 0.1f)
-                    ) else listOf(
-                        Color(0xFF00807A),
-                        Color(0xFF006A66).copy(alpha = 0.7f)
+            .height(52.dp)
+            .drawBehind {
+                val cornerRadiusPx = 12.dp.toPx()
+                if (enabled) {
+                    // Raised shadow
+                    drawRoundRect(
+                        color = shadowColor.copy(alpha = 0.8f),
+                        topLeft = Offset(8f, 8f),
+                        size = size,
+                        cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
                     )
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .border(
-                BorderStroke(1.dp, if (isDark) Color(0xFF29FCF3).copy(alpha = 0.5f) else Color(0xFF006A66).copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(16.dp)
-            )
+                    drawRoundRect(
+                        color = highlightColor.copy(alpha = 0.9f),
+                        topLeft = Offset(-8f, -8f),
+                        size = size,
+                        cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
+                    )
+                } else {
+                    // Flat/sunken shadow
+                    drawRoundRect(
+                        color = shadowColor.copy(alpha = 0.3f),
+                        topLeft = Offset(2f, 2f),
+                        size = size,
+                        cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
+                    )
+                }
+            }
+            .clip(RoundedCornerShape(12.dp))
+            .background(bgColor)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.padding(horizontal = 16.dp)
         ) {
             Text(
                 text = text.uppercase(),
-                color = if (isDark) Color(0xFF003735) else Color.White,
+                color = contentColor,
                 style = MaterialTheme.typography.labelMedium,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp
+                letterSpacing = 1.sp
             )
             if (icon != null) {
                 Spacer(modifier = Modifier.width(8.dp))
@@ -212,18 +196,33 @@ fun GhostButton(
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
     val isDark = isAppDarkTheme()
+    val bgColor = if (isDark) DarkBg else LightBg
+    val shadowColor = if (isDark) DarkShadow else LightShadow
+    val highlightColor = if (isDark) DarkHighlight else LightHighlight
     val textColor = getAppTextColor()
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.Transparent)
-            .border(
-                BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.15f)),
-                shape = RoundedCornerShape(16.dp)
-            )
+            .drawBehind {
+                val cornerRadiusPx = 12.dp.toPx()
+                drawRoundRect(
+                    color = shadowColor.copy(alpha = 0.6f),
+                    topLeft = Offset(6f, 6f),
+                    size = size,
+                    cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
+                )
+                drawRoundRect(
+                    color = highlightColor.copy(alpha = 0.7f),
+                    topLeft = Offset(-6f, -6f),
+                    size = size,
+                    cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
+                )
+            }
+            .clip(RoundedCornerShape(12.dp))
+            .background(bgColor)
             .clickable(onClick = onClick)
-            .padding(16.dp)
+            .padding(14.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -264,18 +263,15 @@ fun GlassTextField(
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val isDark = isAppDarkTheme()
-    val labelColor = if (isFocused) {
-        if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-    } else {
-        if (isDark) Color(0xFFE0E3E5) else Color(0xFF4A5568)
-    }
+    val bgColor = if (isDark) DarkBg else LightBg
+    val labelColor = if (isFocused) AccentColor else getAppSubTextColor()
     
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = label,
             color = labelColor,
             style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
             fontFamily = FontFamily.Monospace
         )
         OutlinedTextField(
@@ -285,7 +281,7 @@ fun GlassTextField(
                 {
                     Text(
                         text = placeholder,
-                        color = if (isDark) Color(0xFFB9CAC8).copy(alpha = 0.5f) else Color(0xFF4A5568).copy(alpha = 0.5f),
+                        color = getAppSubTextColor().copy(alpha = 0.5f),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -295,11 +291,7 @@ fun GlassTextField(
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = if (isFocused) {
-                            if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-                        } else {
-                            if (isDark) Color(0xFFB9CAC8).copy(alpha = 0.5f) else Color(0xFF4A5568).copy(alpha = 0.5f)
-                        }
+                        tint = if (isFocused) AccentColor else getAppSubTextColor().copy(alpha = 0.5f)
                     )
                 }
             },
@@ -307,18 +299,19 @@ fun GlassTextField(
             visualTransformation = visualTransformation,
             keyboardOptions = keyboardOptions,
             singleLine = true,
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.03f),
-                unfocusedContainerColor = if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.01f),
-                focusedBorderColor = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66),
-                unfocusedBorderColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.15f),
-                cursorColor = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66),
-                focusedTextColor = if (isDark) Color(0xFFE0E3E5) else Color(0xFF101415),
-                unfocusedTextColor = if (isDark) Color(0xFFE0E3E5) else Color(0xFF101415)
+                focusedContainerColor = bgColor,
+                unfocusedContainerColor = bgColor,
+                focusedBorderColor = AccentColor,
+                unfocusedBorderColor = if (isDark) DarkShadow else LightShadow,
+                cursorColor = AccentColor,
+                focusedTextColor = getAppTextColor(),
+                unfocusedTextColor = getAppTextColor()
             ),
             modifier = Modifier
                 .fillMaxWidth()
+                .neumorphicSunken(isDark)
                 .onFocusChanged { isFocused = it.isFocused }
         )
     }
@@ -336,34 +329,31 @@ fun StudentBottomBar(
 ) {
     val isDark = isAppDarkTheme()
     val subTextColor = getAppSubTextColor()
-    val activeTint = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-    val activeBg = activeTint.copy(alpha = 0.1f)
+    val activeTint = AccentColor
+    val bgColor = if (isDark) DarkBg else LightBg
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(65.dp)
-            .background(if (isDark) Color.White.copy(alpha = 0.05f) else Color.White.copy(alpha = 0.9f))
-            .border(
-                BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f)),
-                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
-            )
+            .neumorphicCard(isDark)
+            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            .background(bgColor)
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceAround
     ) {
-        val activeBg = if (isDark) Color(0xFF29FCF3).copy(alpha = 0.15f) else Color(0xFF006A66).copy(alpha = 0.15f)
-        val activeTint = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
+        val activeBg = if (isDark) DarkHighlight else LightShadow
 
         // Home
         val homeActive = activeTab == "home"
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .clickable { onHomeClick() }
                 .run {
-                    if (homeActive) background(activeBg).padding(horizontal = 10.dp, vertical = 4.dp) else this
+                    if (homeActive) background(activeBg).padding(horizontal = 14.dp, vertical = 6.dp) else this
                 }
         ) {
             Icon(
@@ -386,10 +376,10 @@ fun StudentBottomBar(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .clickable { onRoomsClick() }
                 .run {
-                    if (roomsActive) background(activeBg).padding(horizontal = 10.dp, vertical = 4.dp) else this
+                    if (roomsActive) background(activeBg).padding(horizontal = 14.dp, vertical = 6.dp) else this
                 }
         ) {
             Icon(
@@ -412,10 +402,10 @@ fun StudentBottomBar(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .clickable { onFinanceClick() }
                 .run {
-                    if (financeActive) background(activeBg).padding(horizontal = 10.dp, vertical = 4.dp) else this
+                    if (financeActive) background(activeBg).padding(horizontal = 14.dp, vertical = 6.dp) else this
                 }
         ) {
             Icon(
@@ -433,41 +423,15 @@ fun StudentBottomBar(
             )
         }
 
-        // Profile
-        val profileActive = activeTab == "profile"
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .clickable { onProfileClick() }
-                .run {
-                    if (profileActive) background(activeBg).padding(horizontal = 10.dp, vertical = 4.dp) else this
-                }
-        ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Profile",
-                tint = if (profileActive) activeTint else subTextColor,
-                modifier = Modifier.size(20.dp)
-            )
-            Text(
-                text = "Profile",
-                color = if (profileActive) activeTint else subTextColor,
-                style = MaterialTheme.typography.labelMedium,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 9.sp
-            )
-        }
-
         // Support
         val supportActive = activeTab == "support"
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .clickable { onSupportClick() }
                 .run {
-                    if (supportActive) background(activeBg).padding(horizontal = 10.dp, vertical = 4.dp) else this
+                    if (supportActive) background(activeBg).padding(horizontal = 14.dp, vertical = 6.dp) else this
                 }
         ) {
             Icon(

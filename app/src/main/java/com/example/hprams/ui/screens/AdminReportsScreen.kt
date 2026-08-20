@@ -45,7 +45,7 @@ fun AdminReportsScreen(
         }
         generatedCSV = builder.toString()
         showCSVPreview = true
-        Toast.makeText(context, "Excel/CSV Roster generated successfully!", Toast.LENGTH_LONG).show()
+        com.example.hprams.util.CsvDownloader.downloadCsv(context, "students_roster_${System.currentTimeMillis()}.csv", generatedCSV)
     }
 
     GlassBackground(modifier = modifier) {

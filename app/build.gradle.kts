@@ -11,7 +11,7 @@ android {
     namespace = "com.example.hprams"
     compileSdk = 35
     defaultConfig {
-        applicationId = "com.example.hprams"
+        applicationId = "com.example.hostivo"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -93,6 +93,7 @@ dependencies {
   // Firebase
   implementation(platform(libs.firebase.bom))
   implementation(libs.firebase.auth)
+  implementation(libs.firebase.database)
   implementation(libs.firebase.firestore)
   implementation(libs.firebase.storage)
   implementation(libs.firebase.messaging)
@@ -100,4 +101,15 @@ dependencies {
 
   // Coil
   implementation(libs.coil.compose)
+
+  // Razorpay Standard Checkout SDK
+  implementation("com.razorpay:checkout:1.6.38")
+
+  // Room Database Cache
+  implementation("androidx.room:room-runtime:2.6.1")
+  implementation("androidx.room:room-ktx:2.6.1")
+  ksp("androidx.room:room-compiler:2.6.1")
+
+  // WorkManager Sync
+  implementation("androidx.work:work-runtime-ktx:2.9.0")
 }

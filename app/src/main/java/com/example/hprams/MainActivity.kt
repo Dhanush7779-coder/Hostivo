@@ -1,6 +1,7 @@
 package com.example.hprams
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,9 +13,15 @@ import com.example.hprams.theme.HPRAMSTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), com.razorpay.PaymentResultListener {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    
+    // Start Realtime Database sync
+    com.example.hprams.data.HostelDataStore.initializeSync(applicationContext)
+
+    // Preload Razorpay checkout to improve loading times
+    com.razorpay.Checkout.preload(applicationContext)
 
     enableEdgeToEdge()
     setContent {
@@ -27,5 +34,13 @@ class MainActivity : ComponentActivity() {
         }
       }
     }
+  }
+
+  override fun onPaymentSuccess(razorpayPaymentId: String?) {
+    com.example.hprams.data.HostelDataStore.onPaymentSuccessCallback?.invoke(razorpayPaymentId ?: "")
+  }
+
+  override fun onPaymentError(code: Int, response: String?) {
+    com.example.hprams.data.HostelDataStore.onPaymentErrorCallback?.invoke(code, response ?: "")
   }
 }

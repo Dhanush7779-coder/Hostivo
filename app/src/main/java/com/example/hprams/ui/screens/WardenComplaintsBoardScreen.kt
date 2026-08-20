@@ -170,7 +170,22 @@ fun WardenComplaintsBoardScreen(
                                         } else if (ticket.status == "Assigned") {
                                             Button(
                                                 onClick = {
-                                                    ticket.status = "RESOLVED"
+                                                    val updatedTicket = ticket.copy(status = "RESOLVED")
+                                                    HostelDataStore.saveComplaint(updatedTicket)
+                                                    
+                                                    val matchedStudent = HostelDataStore.students.find { it.name == ticket.studentName }
+                                                    matchedStudent?.let { std ->
+                                                        val notification = com.example.hprams.data.NotificationItem(
+                                                            id = "NTF-${(1000..9999).random()}",
+                                                            userId = std.roll,
+                                                            title = "Complaint Status: Resolved",
+                                                            message = "Your complaint '${ticket.category}' has been marked as RESOLVED.",
+                                                            type = "COMPLAINT",
+                                                            timestamp = "18 Aug 2026",
+                                                            deepLink = "complaints_list"
+                                                        )
+                                                        HostelDataStore.saveNotification(notification, context)
+                                                    }
                                                     Toast.makeText(context, "Complaint Ticket Resolved!", Toast.LENGTH_SHORT).show()
                                                 },
                                                 shape = RoundedCornerShape(8.dp),
@@ -231,10 +246,27 @@ fun WardenComplaintsBoardScreen(
                 Button(
                     onClick = {
                         if (selectedHandyman.isNotEmpty()) {
-                            selectedTicketForAssign?.let { ticket ->
-                                ticket.status = "Assigned"
-                                ticket.assignedHandyman = selectedHandyman
-                            }
+                              selectedTicketForAssign?.let { ticket ->
+                                  val updatedTicket = ticket.copy(
+                                      status = "Assigned",
+                                      assignedHandyman = selectedHandyman
+                                  )
+                                  HostelDataStore.saveComplaint(updatedTicket)
+                                  
+                                  val matchedStudent = HostelDataStore.students.find { it.name == ticket.studentName }
+                                  matchedStudent?.let { std ->
+                                      val notification = com.example.hprams.data.NotificationItem(
+                                          id = "NTF-${(1000..9999).random()}",
+                                          userId = std.roll,
+                                          title = "Complaint Status: Assigned",
+                                          message = "Your complaint '${ticket.category}' has been assigned to ${selectedHandyman}.",
+                                          type = "COMPLAINT",
+                                          timestamp = "18 Aug 2026",
+                                          deepLink = "complaints_list"
+                                      )
+                                      HostelDataStore.saveNotification(notification, context)
+                                  }
+                              }
                             Toast.makeText(context, "Handyman assigned successfully!", Toast.LENGTH_SHORT).show()
                             showAssignDialog = false
                         } else {

@@ -18,10 +18,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.example.hprams" />
-                  <option name="mobileSdkAppId" value="1:1234567890:android:abcdef123456" />
-                  <option name="projectId" value="hprams-placeholder" />
-                  <option name="projectNumber" value="1234567890" />
+                  <option name="appId" value="com.example.hostivo" />
+                  <option name="mobileSdkAppId" value="1:603856360970:android:bdb7b189bbac7bf1be71f3" />
+                  <option name="projectId" value="hostivo-d89ed" />
+                  <option name="projectNumber" value="603856360970" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

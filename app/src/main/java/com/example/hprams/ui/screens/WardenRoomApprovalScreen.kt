@@ -137,11 +137,28 @@ fun WardenRoomApprovalScreen(
                                     ) {
                                         Button(
                                             onClick = {
-                                                // Approve Request
+                                                val targetBlock = student?.block ?: (if (req.gender == "Female") "Block C" else "Block A")
+                                                if (!com.example.hprams.data.RoomRules.isRoomAvailable(targetBlock, req.requestedRoom)) {
+                                                    Toast.makeText(context, "Cannot allocate room: Room capacity exceeded!", Toast.LENGTH_LONG).show()
+                                                    return@Button
+                                                }
+
                                                 req.status = "Approved"
-                                                // Update student room assignment in database
                                                 student?.let { s ->
-                                                    s.feePaidStatus = "Paid" // mark fee paid on approval context
+                                                    val updatedStudent = s.copy(room = req.requestedRoom)
+                                                    HostelDataStore.saveStudent(updatedStudent)
+                                                    HostelDataStore.saveRoomChange(req)
+                                                    
+                                                    val stdNotif = com.example.hprams.data.NotificationItem(
+                                                        id = "NTF-${(1000..9999).random()}",
+                                                        userId = s.roll,
+                                                        title = "Room Allocated",
+                                                        message = "Your request to occupy Room ${req.requestedRoom} has been approved by the Warden.",
+                                                        type = "ALLOCATION",
+                                                        timestamp = "18 Aug 2026",
+                                                        deepLink = "profile"
+                                                    )
+                                                    HostelDataStore.saveNotification(stdNotif, context)
                                                 }
                                                 Toast.makeText(context, "Request Approved!", Toast.LENGTH_SHORT).show()
                                             },
@@ -204,6 +221,21 @@ fun WardenRoomApprovalScreen(
                             selectedRequestForReject?.let { req ->
                                 req.status = "Rejected"
                                 req.rejectReason = rejectReasonText
+                                HostelDataStore.saveRoomChange(req)
+                                
+                                val matchedStudent = HostelDataStore.students.find { it.roll == req.studentRoll }
+                                matchedStudent?.let { s ->
+                                    val stdNotif = com.example.hprams.data.NotificationItem(
+                                        id = "NTF-${(1000..9999).random()}",
+                                        userId = s.roll,
+                                        title = "Room Allocation Rejected",
+                                        message = "Your request to occupy Room ${req.requestedRoom} was rejected: ${rejectReasonText}.",
+                                        type = "ALLOCATION",
+                                        timestamp = "18 Aug 2026",
+                                        deepLink = "profile"
+                                    )
+                                    HostelDataStore.saveNotification(stdNotif, context)
+                                }
                             }
                             Toast.makeText(context, "Request Rejected!", Toast.LENGTH_SHORT).show()
                             showRejectDialog = false

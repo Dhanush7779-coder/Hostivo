@@ -25,7 +25,11 @@ import androidx.compose.ui.res.painterResource
 import com.example.hprams.R
 import com.example.hprams.ui.components.*
 import com.example.hprams.theme.isAppDarkTheme
+import com.example.hprams.theme.AccentColor
 import com.example.hprams.data.HostelDataStore
+
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +39,7 @@ fun EmailLoginScreen(
     onSignUpClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -43,7 +48,7 @@ fun EmailLoginScreen(
     val roles = listOf("Student", "Warden", "Admin", "Security")
 
     // For Student role, allow selecting which student profile to use for testing
-    var selectedStudentRoll by remember { mutableStateOf("231801380001") } // Alex Vance (Female)
+    var selectedStudentRoll by remember { mutableStateOf("231801380007") } // C venkat Dhanush (Male)
     var selectedWardenScope by remember { mutableStateOf("Boys") } // Boys or Girls
 
     val isDark = isAppDarkTheme()
@@ -93,8 +98,8 @@ fun EmailLoginScreen(
                             modifier = Modifier.size(64.dp)
                         )
                         Text(
-                            text = "Nest Campus",
-                            color = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66),
+                            text = "Hostivo",
+                            color = AccentColor,
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
@@ -109,173 +114,12 @@ fun EmailLoginScreen(
 
                     // Card
                     GlassCard(modifier = Modifier.fillMaxWidth()) {
-                        // Role Selector
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                "Select Role",
-                                color = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66),
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
-                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                            )
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
-                            ) {
-                                roles.forEach { role ->
-                                    val isSelected = selectedRole == role
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .background(
-                                                if (isSelected) {
-                                                    if (isDark) Color(0xFF29FCF3).copy(alpha = 0.2f) else Color(0xFF006A66).copy(alpha = 0.2f)
-                                                } else {
-                                                    if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f)
-                                                },
-                                                RoundedCornerShape(8.dp)
-                                            )
-                                            .border(
-                                                1.dp,
-                                                if (isSelected) {
-                                                    if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-                                                } else Color.Transparent,
-                                                RoundedCornerShape(8.dp)
-                                            )
-                                            .clickable { selectedRole = role }
-                                            .padding(vertical = 8.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = role,
-                                            color = if (isSelected) {
-                                                if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-                                            } else subTextColor,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 11.sp
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Student selection switcher for debugging purposes
-                        if (selectedRole == "Student") {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Text(
-                                    "Select Testing Student Profile",
-                                    color = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                                )
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    listOf(
-                                        "231801380001" to "Alex Vance (Female)",
-                                        "231801380002" to "Dhanush Kumar (Male)"
-                                    ).forEach { (roll, label) ->
-                                        val isSelected = selectedStudentRoll == roll
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .background(
-                                                    if (isSelected) {
-                                                        if (isDark) Color(0xFF29FCF3).copy(alpha = 0.15f) else Color(0xFF006A66).copy(alpha = 0.15f)
-                                                    } else {
-                                                        if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f)
-                                                    },
-                                                    RoundedCornerShape(8.dp)
-                                                )
-                                                .border(
-                                                    1.dp,
-                                                    if (isSelected) {
-                                                        if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-                                                    } else Color.Transparent,
-                                                    RoundedCornerShape(8.dp)
-                                                )
-                                                .clickable { selectedStudentRoll = roll }
-                                                .padding(vertical = 8.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = label,
-                                                color = if (isSelected) {
-                                                    if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-                                                } else subTextColor,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Warden scope selector for testing Boys Warden vs Girls Warden (Section 6)
-                        if (selectedRole == "Warden") {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Text(
-                                    "Select Warden Scope",
-                                    color = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                                )
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    listOf(
-                                        "Boys" to "Boys (Block A & B)",
-                                        "Girls" to "Girls (Block C & D)"
-                                    ).forEach { (scope, label) ->
-                                        val isSelected = selectedWardenScope == scope
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .background(
-                                                    if (isSelected) {
-                                                        if (isDark) Color(0xFF29FCF3).copy(alpha = 0.15f) else Color(0xFF006A66).copy(alpha = 0.15f)
-                                                    } else {
-                                                        if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f)
-                                                    },
-                                                    RoundedCornerShape(8.dp)
-                                                )
-                                                .border(
-                                                    1.dp,
-                                                    if (isSelected) {
-                                                        if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-                                                    } else Color.Transparent,
-                                                    RoundedCornerShape(8.dp)
-                                                )
-                                                .clickable { selectedWardenScope = scope }
-                                                .padding(vertical = 8.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = label,
-                                                color = if (isSelected) {
-                                                    if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-                                                } else subTextColor,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                textAlign = TextAlign.Center
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
                         // Email Field
                         GlassTextField(
                             value = email,
                             onValueChange = { email = it },
                             label = "Institutional Email",
-                            placeholder = "john.doe@hprams.edu",
+                            placeholder = "john.doe@hostivo.edu",
                             leadingIcon = Icons.Default.Mail,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                         )
@@ -307,14 +151,29 @@ fun EmailLoginScreen(
                         GlassButton(
                             text = "Sign In",
                             onClick = {
-                                HostelDataStore.currentRole = selectedRole
-                                if (selectedRole == "Student") {
-                                    HostelDataStore.currentStudentRoll = selectedStudentRoll
+                                val trimmedEmail = email.trim().lowercase()
+                                val matchedStudent = HostelDataStore.students.find { it.email.lowercase() == trimmedEmail }
+                                val resolvedRole = when {
+                                    trimmedEmail == "ammananasanju@gmail.com" -> {
+                                        HostelDataStore.adminName = "C.Venkat Dhanush"
+                                        "Admin"
+                                    }
+                                    matchedStudent != null -> {
+                                        HostelDataStore.currentStudentRoll = matchedStudent.roll
+                                        matchedStudent.role
+                                    }
+                                    trimmedEmail == "ramprasad@hostivo.edu" -> {
+                                        HostelDataStore.currentWardenScope = "Boys"
+                                        "Warden"
+                                    }
+                                    trimmedEmail == "ramesh@hostivo.edu" -> {
+                                        HostelDataStore.securityOfficerName = "Ramesh Kumar"
+                                        "Security"
+                                    }
+                                    else -> "Student"
                                 }
-                                if (selectedRole == "Warden") {
-                                    HostelDataStore.currentWardenScope = selectedWardenScope
-                                }
-                                onSignInClick(email, password, selectedRole)
+                                HostelDataStore.currentRole = resolvedRole
+                                onSignInClick(email, password, resolvedRole)
                             }
                         )
 

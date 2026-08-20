@@ -1,0 +1,22 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /receipts/{fileName} {
+      allow read: if request.auth != null && (
+        request.auth.token.email == 'ammananasanju@gmail.com' ||
+        request.auth.token.email.endsWith('@hostivo.edu') ||
+        fileName.startsWith(request.auth.token.email.replace('.', '_'))
+      );
+      allow write: if request.auth != null && 
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+    
+    match /complaints/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+  }
+}

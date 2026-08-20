@@ -72,6 +72,7 @@ fun SecurityDashboardScreen(
     GlassBackground(modifier = modifier) {
         Scaffold(
             topBar = {
+                var showDropdownMenu by remember { mutableStateOf(false) }
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
@@ -81,6 +82,35 @@ fun SecurityDashboardScreen(
                             fontFamily = FontFamily.Monospace,
                             fontSize = 18.sp
                         )
+                    },
+                    actions = {
+                        Box {
+                            IconButton(onClick = { showDropdownMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Menu Options", tint = textColor)
+                            }
+                            DropdownMenu(
+                                expanded = showDropdownMenu,
+                                onDismissRequest = { showDropdownMenu = false },
+                                modifier = Modifier.background(if (isDark) Color(0xFF141C27) else Color(0xFFF3F6F6))
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Edit Security Profile", color = textColor) },
+                                    onClick = {
+                                        showDropdownMenu = false
+                                        showProfileEditDialog = true
+                                    },
+                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = textColor) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Logout", color = textColor) },
+                                    onClick = {
+                                        showDropdownMenu = false
+                                        onSignOutClick()
+                                    },
+                                    leadingIcon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = textColor) }
+                                )
+                            }
+                        }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                         containerColor = Color.Transparent

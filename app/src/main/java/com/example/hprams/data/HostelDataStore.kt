@@ -4,51 +4,65 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateListOf
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 
-// Data models
+// Student profile model containing fatherName and emergencyPhone fields
 data class StudentProfile(
-    val roll: String,
-    val name: String,
-    val email: String,
-    val phone: String,
-    val gender: String, // "Male" or "Female"
-    val block: String,
-    val room: String,
-    var feePaidStatus: String, // "Paid" or "Pending"
-    var paymentStatus: String, // "Success" or "Pending"
-    var approvalStatus: String // "Approved by Admin" or "Pending"
+    val roll: String = "",
+    val name: String = "",
+    val email: String = "",
+    val phone: String = "",
+    val gender: String = "",
+    val block: String = "",
+    val room: String = "",
+    var feePaidStatus: String = "Pending",
+    var paymentStatus: String = "Pending",
+    var approvalStatus: String = "Pending",
+    val fatherName: String = "",
+    val emergencyPhone: String = "",
+    val role: String = "Student", // "Student", "Warden", "Security"
+    val dob: String = ""
 )
 
 data class RoomChangeRequest(
-    val id: String,
-    val studentRoll: String,
-    val studentName: String,
-    val currentRoom: String,
-    val requestedRoom: String,
-    val gender: String,
-    var status: String, // "Pending", "Approved", "Rejected"
-    var rejectReason: String = ""
+    val id: String = "",
+    val studentRoll: String = "",
+    val studentName: String = "",
+    val currentRoom: String = "",
+    val requestedRoom: String = "",
+    val gender: String = "",
+    var status: String = "Pending",
+    var rejectReason: String = "",
+    val refundOption: String = "",
+    val refundDetails: String = ""
 )
 
 data class ComplaintTicket(
-    val id: String,
-    val studentName: String,
-    val title: String,
-    val category: String,
-    val description: String,
-    var status: String, // "Pending", "Assigned", "Resolved"
-    val date: String,
-    val gender: String, // to segregate by hostel
-    var assignedHandyman: String = ""
+    val id: String = "",
+    val studentName: String = "",
+    val title: String = "",
+    val category: String = "",
+    val description: String = "",
+    var status: String = "Pending",
+    val date: String = "",
+    val gender: String = "",
+    var assignedHandyman: String = "",
+    val imageUrl: String = ""
 )
 
 data class GatePassRequest(
-    val id: String,
-    val studentName: String,
-    val studentRoll: String,
-    val type: String, // "Outing" or "Leave"
-    val gender: String,
-    var wardenApproval: String, // "Pending", "Approved", "Rejected"
+    val id: String = "",
+    val studentName: String = "",
+    val studentRoll: String = "",
+    val type: String = "",
+    val gender: String = "",
+    var wardenApproval: String = "Pending",
     val outDate: String = "",
     val outTime: String = "",
     val inDate: String = "",
@@ -64,47 +78,87 @@ data class GatePassRequest(
 )
 
 data class AnnouncementItem(
-    val id: String,
-    val title: String,
-    val category: String, // "GENERAL NOTICE", "EMERGENCY BROADCAST"
-    val date: String,
-    val content: String,
-    val targetHostel: String // "All", "Boys", "Girls"
+    val id: String = "",
+    val title: String = "",
+    val category: String = "",
+    val date: String = "",
+    val content: String = "",
+    val targetHostel: String = "All"
 )
 
 data class FineItem(
-    val id: String,
-    val studentRoll: String,
-    val reason: String,
-    val amount: String,
-    var status: String // "Unpaid" or "Paid"
+    val id: String = "",
+    val studentRoll: String = "",
+    val reason: String = "",
+    val amount: String = "",
+    var status: String = "Unpaid"
+)
+
+data class PaymentItem(
+    val paymentId: String = "",
+    val studentId: String = "",
+    val amount: String = "",
+    val currency: String = "INR",
+    val paymentMethod: String = "",
+    val paymentType: String = "", // "RAZORPAY" or "EXTERNAL"
+    val paymentStatus: String = "PENDING", // PENDING, UNDER_VERIFICATION, PAID, FAILED, REJECTED, REFUNDED
+    val razorpayOrderId: String = "",
+    val razorpayPaymentId: String = "",
+    val razorpaySignatureReference: String = "",
+    val paymentReference: String = "",
+    val receiptUrl: String = "",
+    val paymentDate: String = "",
+    val verifiedBy: String = "",
+    val verifiedAt: String = "",
+    val rejectionReason: String = "",
+    val createdAt: String = "",
+    val updatedAt: String = ""
+)
+
+data class NotificationItem(
+    val id: String = "",
+    val userId: String = "", // roll or "Warden" or "Admin"
+    val title: String = "",
+    val message: String = "",
+    val type: String = "",
+    val timestamp: String = "",
+    val deepLink: String = "",
+    var isRead: Boolean = false
 )
 
 object HostelDataStore {
+    // Razorpay listener callbacks
+    var onPaymentSuccessCallback by mutableStateOf<((String) -> Unit)?>(null)
+    var onPaymentErrorCallback by mutableStateOf<((Int, String) -> Unit)?>(null)
+
     // Current logged-in user context
-    var currentRole by mutableStateOf("Student") // "Student", "Warden", "Admin", "Security"
-    var currentStudentRoll by mutableStateOf("231801380001")
+    var currentRole by mutableStateOf("Student")
+    var currentStudentRoll by mutableStateOf("231801380007")
+    var prefilledEmail by mutableStateOf("")
+    var prefilledName by mutableStateOf("")
 
-    // Warden Scoped (Section 6: Boys vs Girls Warden)
-    var currentWardenScope by mutableStateOf("Boys") // "Boys" or "Girls"
+    // Warden Scoped
+    var currentWardenScope by mutableStateOf("Boys")
 
-    // Security Settings (Section 6)
-    var securityBlockAssignment by mutableStateOf("Block A & B")
-    var securityDutyTimings by mutableStateOf("08:00 AM - 08:00 PM")
+    // Security Settings
+    var securityBlockAssignment by mutableStateOf("")
+    var securityDutyTimings by mutableStateOf("")
     var securityIsPresentToday by mutableStateOf(false)
+    var securityOfficerName by mutableStateOf("")
 
-    // Master configuration settings
-    var chiefWardenName by mutableStateOf("Dr. Amit Khanna")
-    var chiefWardenPhone by mutableStateOf("+91 9443210987")
-    var blockAWardenName by mutableStateOf("Mr. Suresh Kumar")
-    var blockAWardenPhone by mutableStateOf("+91 9443210988")
-    var blockBWardenName by mutableStateOf("Mrs. Anjali Sen")
-    var blockBWardenPhone by mutableStateOf("+91 9443210989")
+    // Master configuration settings with Ramprasad as Warden and C.Venkat Dhanush as Admin
+    var chiefWardenName by mutableStateOf("Ramprasad")
+    var chiefWardenPhone by mutableStateOf("9492409574")
+    var blockAWardenName by mutableStateOf("")
+    var blockAWardenPhone by mutableStateOf("")
+    var blockBWardenName by mutableStateOf("")
+    var blockBWardenPhone by mutableStateOf("")
+    var adminName by mutableStateOf("C.Venkat Dhanush")
 
     // Mess Timings
-    var tiffinTiming by mutableStateOf("07:30 AM - 09:00 AM")
-    var lunchTiming by mutableStateOf("12:30 PM - 02:00 PM")
-    var dinnerTiming by mutableStateOf("07:30 PM - 09:00 PM")
+    var tiffinTiming by mutableStateOf("")
+    var lunchTiming by mutableStateOf("")
+    var dinnerTiming by mutableStateOf("")
 
     // Room Sharing Fees (Non-AC)
     var fee5Sharing by mutableStateOf("Rs. 40,000 / Sem (Rs. 80,000/Yr)")
@@ -118,27 +172,15 @@ object HostelDataStore {
     var fee3SharingAC by mutableStateOf("Rs. 55,000 / Sem (Rs. 1,10,000/Yr)")
     var fee2SharingAC by mutableStateOf("Rs. 60,000 / Sem (Rs. 1,20,000/Yr)")
 
-    // Master Collections with Roll format 23180138XXXX (Section 7)
-    val students = mutableStateListOf(
-        StudentProfile("231801380001", "Alex Vance", "alex.vance@hprams.edu", "+91 9876543210", "Female", "Block C", "104", "Paid", "Success", "Approved by Admin"),
-        StudentProfile("231801380002", "Dhanush Kumar", "dhanush.k@hprams.edu", "+91 9123456789", "Male", "Block A", "101", "Pending", "Pending", "Pending")
-    )
-
+    // Master Collections
+    val students = mutableStateListOf<StudentProfile>()
     val roomChangeRequests = mutableStateListOf<RoomChangeRequest>()
-
-    val complaints = mutableStateListOf(
-        ComplaintTicket("CMP-8492", "Alex Vance", "Water leakage in bathroom washbasin.", "PLUMBING", "Leakage is continuous since yesterday night.", "Pending", "14 Aug 2026", "Female"),
-        ComplaintTicket("CMP-7382", "Dhanush Kumar", "Ceiling fan speed regulator not working.", "ELECTRICAL", "Regulator is stuck on speed 5 and cannot be lowered.", "Pending", "10 Aug 2026", "Male")
-    )
-
+    val complaints = mutableStateListOf<ComplaintTicket>()
     val gatePassRequests = mutableStateListOf<GatePassRequest>()
-
-    val announcements = mutableStateListOf(
-        AnnouncementItem("ANN-001", "Water supply maintenance block A", "EMERGENCY BROADCAST", "14 Aug 2026", "Water supply in Block A will be disconnected between 2 PM to 5 PM today for routine pipe repairs.", "Girls"),
-        AnnouncementItem("ANN-002", "Hostel rules & curfew timing strict check", "GENERAL NOTICE", "14 Aug 2026", "Curfew is strictly enforced at 10 PM. All students must present their Digital ID pass at the main gate.", "All")
-    )
-
+    val announcements = mutableStateListOf<AnnouncementItem>()
     val fines = mutableStateListOf<FineItem>()
+    val payments = mutableStateListOf<PaymentItem>()
+    val notifications = mutableStateListOf<NotificationItem>()
 
     val handymen = listOf(
         "Electrician Ramesh",
@@ -147,7 +189,437 @@ object HostelDataStore {
         "Mason Karthik"
     )
 
+    // Permissions check flag to ask only once
+    var permissionsAsked by mutableStateOf(false)
+
+    // Firebase Database Reference
+    private val database = FirebaseDatabase.getInstance()
+    private val dbRef = database.reference
+
     fun getStudent(roll: String): StudentProfile? {
         return students.find { it.roll == roll }
+    }
+
+    private var cacheDatabase: com.example.hprams.data.local.CacheDatabase? = null
+
+    // Sync functions to synchronize lists with Firebase Database in real time
+    fun initializeSync(context: android.content.Context) {
+        cacheDatabase = com.example.hprams.data.local.CacheDatabase.getDatabase(context)
+        loadFromLocalCache()
+
+        // Sync Students
+        dbRef.child("students").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                students.clear()
+                val list = mutableListOf<StudentProfile>()
+                for (child in snapshot.children) {
+                    child.getValue(StudentProfile::class.java)?.let { 
+                        students.add(it)
+                        list.add(it)
+                    }
+                }
+                saveStudentsToCache(list)
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        // Sync Room Change Requests
+        dbRef.child("roomChangeRequests").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                roomChangeRequests.clear()
+                for (child in snapshot.children) {
+                    child.getValue(RoomChangeRequest::class.java)?.let { roomChangeRequests.add(it) }
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        // Sync Complaints
+        dbRef.child("complaints").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                complaints.clear()
+                val list = mutableListOf<ComplaintTicket>()
+                for (child in snapshot.children) {
+                    child.getValue(ComplaintTicket::class.java)?.let { 
+                        complaints.add(it)
+                        list.add(it)
+                    }
+                }
+                saveComplaintsToCache(list)
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        // Sync Gate Pass Requests
+        dbRef.child("gatePassRequests").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                gatePassRequests.clear()
+                for (child in snapshot.children) {
+                    child.getValue(GatePassRequest::class.java)?.let { gatePassRequests.add(it) }
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        // Sync Announcements
+        dbRef.child("announcements").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val isInitial = announcements.isEmpty()
+                announcements.clear()
+                val list = mutableListOf<AnnouncementItem>()
+                for (child in snapshot.children) {
+                    child.getValue(AnnouncementItem::class.java)?.let { 
+                        announcements.add(it)
+                        list.add(it)
+                    }
+                }
+                saveAnnouncementsToCache(list)
+                if (!isInitial && list.isNotEmpty()) {
+                    val latest = list.last()
+                    triggerLocalNotification(context, "Announcement: ${latest.title}", latest.content)
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        // Sync Fines
+        dbRef.child("fines").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                fines.clear()
+                for (child in snapshot.children) {
+                    child.getValue(FineItem::class.java)?.let { fines.add(it) }
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        // Sync Payments
+        dbRef.child("payments").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                payments.clear()
+                val list = mutableListOf<PaymentItem>()
+                for (child in snapshot.children) {
+                    child.getValue(PaymentItem::class.java)?.let { 
+                        payments.add(it)
+                        list.add(it)
+                    }
+                }
+                savePaymentsToCache(list)
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        // Sync Notifications
+        dbRef.child("notifications").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val isInitial = notifications.isEmpty()
+                notifications.clear()
+                val list = mutableListOf<NotificationItem>()
+                for (child in snapshot.children) {
+                    child.getValue(NotificationItem::class.java)?.let { 
+                        notifications.add(it)
+                        list.add(it)
+                    }
+                }
+                saveNotificationsToCache(list)
+                if (!isInitial && list.isNotEmpty()) {
+                    val latest = list.last()
+                    val targetUser = if (currentRole == "Student") currentStudentRoll else currentRole
+                    if (latest.userId == "All" || latest.userId == targetUser) {
+                        triggerLocalNotification(context, latest.title, latest.message)
+                    }
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
+
+    private fun loadFromLocalCache() {
+        val dao = cacheDatabase?.cacheDao() ?: return
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                val cachedStudents = dao.getCachedUsers().map {
+                    StudentProfile(
+                        roll = it.roll,
+                        name = it.name,
+                        email = it.email,
+                        phone = it.phone,
+                        gender = it.gender,
+                        block = it.block,
+                        room = it.room,
+                        feePaidStatus = it.feePaidStatus,
+                        paymentStatus = it.paymentStatus,
+                        approvalStatus = it.approvalStatus,
+                        fatherName = it.fatherName,
+                        emergencyPhone = it.emergencyPhone,
+                        role = it.role,
+                        dob = it.dob
+                    )
+                }
+                if (cachedStudents.isNotEmpty()) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        students.clear()
+                        students.addAll(cachedStudents)
+                    }
+                }
+                
+                val cachedPayments = dao.getCachedPayments().map {
+                    PaymentItem(
+                        paymentId = it.paymentId,
+                        studentId = it.studentId,
+                        amount = it.amount,
+                        currency = it.currency,
+                        paymentMethod = it.paymentMethod,
+                        paymentType = it.paymentType,
+                        paymentStatus = it.paymentStatus,
+                        razorpayOrderId = it.razorpayOrderId,
+                        razorpayPaymentId = it.razorpayPaymentId,
+                        razorpaySignatureReference = it.razorpaySignatureReference,
+                        paymentReference = it.paymentReference,
+                        receiptUrl = it.receiptUrl,
+                        paymentDate = it.paymentDate,
+                        verifiedBy = it.verifiedBy,
+                        verifiedAt = it.verifiedAt,
+                        rejectionReason = it.rejectionReason,
+                        createdAt = it.createdAt,
+                        updatedAt = it.updatedAt
+                    )
+                }
+                if (cachedPayments.isNotEmpty()) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        payments.clear()
+                        payments.addAll(cachedPayments)
+                    }
+                }
+
+                val cachedComplaints = dao.getCachedComplaints().map {
+                    ComplaintTicket(
+                        id = it.id,
+                        studentName = it.studentName,
+                        title = it.title,
+                        category = it.category,
+                        description = it.description,
+                        status = it.status,
+                        date = it.date,
+                        gender = it.gender,
+                        assignedHandyman = it.assignedHandyman,
+                        imageUrl = it.imageUrl
+                    )
+                }
+                if (cachedComplaints.isNotEmpty()) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        complaints.clear()
+                        complaints.addAll(cachedComplaints)
+                    }
+                }
+
+                val cachedAnnouncements = dao.getCachedAnnouncements().map {
+                    AnnouncementItem(
+                        id = it.id,
+                        title = it.title,
+                        category = it.category,
+                        date = it.date,
+                        content = it.content,
+                        targetHostel = it.targetHostel
+                    )
+                }
+                if (cachedAnnouncements.isNotEmpty()) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        announcements.clear()
+                        announcements.addAll(cachedAnnouncements)
+                    }
+                }
+
+                val cachedNotifications = dao.getCachedNotifications().map {
+                    NotificationItem(
+                        id = it.id,
+                        userId = it.userId,
+                        title = it.title,
+                        message = it.message,
+                        type = it.type,
+                        timestamp = it.timestamp,
+                        deepLink = it.deepLink,
+                        isRead = it.isRead
+                    )
+                }
+                if (cachedNotifications.isNotEmpty()) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        notifications.clear()
+                        notifications.addAll(cachedNotifications)
+                    }
+                }
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+    }
+
+    private fun saveStudentsToCache(list: List<StudentProfile>) {
+        val dao = cacheDatabase?.cacheDao() ?: return
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val entities = list.map {
+                com.example.hprams.data.local.UserEntity(
+                    roll = it.roll,
+                    name = it.name,
+                    email = it.email,
+                    phone = it.phone,
+                    gender = it.gender,
+                    block = it.block,
+                    room = it.room,
+                    feePaidStatus = it.feePaidStatus,
+                    paymentStatus = it.paymentStatus,
+                    approvalStatus = it.approvalStatus,
+                    fatherName = it.fatherName,
+                    emergencyPhone = it.emergencyPhone,
+                    role = it.role,
+                    dob = it.dob
+                )
+            }
+            dao.insertUsers(entities)
+        }
+    }
+
+    private fun saveComplaintsToCache(list: List<ComplaintTicket>) {
+        val dao = cacheDatabase?.cacheDao() ?: return
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val entities = list.map {
+                com.example.hprams.data.local.ComplaintEntity(
+                    id = it.id,
+                    studentName = it.studentName,
+                    title = it.title,
+                    category = it.category,
+                    description = it.description,
+                    status = it.status,
+                    date = it.date,
+                    gender = it.gender,
+                    assignedHandyman = it.assignedHandyman,
+                    imageUrl = it.imageUrl
+                )
+            }
+            dao.insertComplaints(entities)
+        }
+    }
+
+    private fun saveAnnouncementsToCache(list: List<AnnouncementItem>) {
+        val dao = cacheDatabase?.cacheDao() ?: return
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val entities = list.map {
+                com.example.hprams.data.local.AnnouncementEntity(
+                    id = it.id,
+                    title = it.title,
+                    category = it.category,
+                    date = it.date,
+                    content = it.content,
+                    targetHostel = it.targetHostel
+                )
+            }
+            dao.insertAnnouncements(entities)
+        }
+    }
+
+    private fun savePaymentsToCache(list: List<PaymentItem>) {
+        val dao = cacheDatabase?.cacheDao() ?: return
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val entities = list.map {
+                com.example.hprams.data.local.PaymentEntity(
+                    paymentId = it.paymentId,
+                    studentId = it.studentId,
+                    amount = it.amount,
+                    currency = it.currency,
+                    paymentMethod = it.paymentMethod,
+                    paymentType = it.paymentType,
+                    paymentStatus = it.paymentStatus,
+                    razorpayOrderId = it.razorpayOrderId,
+                    razorpayPaymentId = it.razorpayPaymentId,
+                    razorpaySignatureReference = it.razorpaySignatureReference,
+                    paymentReference = it.paymentReference,
+                    receiptUrl = it.receiptUrl,
+                    paymentDate = it.paymentDate,
+                    verifiedBy = it.verifiedBy,
+                    verifiedAt = it.verifiedAt,
+                    rejectionReason = it.rejectionReason,
+                    createdAt = it.createdAt,
+                    updatedAt = it.updatedAt
+                )
+            }
+            dao.insertPayments(entities)
+        }
+    }
+
+    private fun saveNotificationsToCache(list: List<NotificationItem>) {
+        val dao = cacheDatabase?.cacheDao() ?: return
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val entities = list.map {
+                com.example.hprams.data.local.NotificationEntity(
+                    id = it.id,
+                    userId = it.userId,
+                    title = it.title,
+                    message = it.message,
+                    type = it.type,
+                    timestamp = it.timestamp,
+                    deepLink = it.deepLink,
+                    isRead = it.isRead
+                )
+            }
+            dao.insertNotifications(entities)
+        }
+    }
+
+    // Write helper functions
+    fun saveStudent(profile: StudentProfile) {
+        dbRef.child("students").child(profile.roll).setValue(profile)
+    }
+
+    fun saveRoomChange(request: RoomChangeRequest) {
+        dbRef.child("roomChangeRequests").child(request.id).setValue(request)
+    }
+
+    fun saveComplaint(ticket: ComplaintTicket) {
+        dbRef.child("complaints").child(ticket.id).setValue(ticket)
+    }
+
+    fun saveGatePass(request: GatePassRequest) {
+        dbRef.child("gatePassRequests").child(request.id).setValue(request)
+    }
+
+    fun saveAnnouncement(announcement: AnnouncementItem) {
+        dbRef.child("announcements").child(announcement.id).setValue(announcement)
+    }
+
+    fun saveFine(fine: FineItem) {
+        dbRef.child("fines").child(fine.id).setValue(fine)
+    }
+
+    fun savePayment(payment: PaymentItem) {
+        dbRef.child("payments").child(payment.paymentId).setValue(payment)
+    }
+
+    fun saveNotification(notification: NotificationItem, context: android.content.Context? = null) {
+        dbRef.child("notifications").child(notification.id).setValue(notification)
+        
+        // Trigger system notification if context is provided and user matches
+        if (context != null) {
+            val currentTarget = if (currentRole == "Student") currentStudentRoll else currentRole
+            if (notification.userId == "All" || notification.userId == currentTarget) {
+                triggerLocalNotification(context, notification.title, notification.message)
+            }
+        }
+    }
+
+    private fun triggerLocalNotification(context: android.content.Context, title: String, message: String) {
+        val channelId = "hprams_notifications"
+        val manager = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = android.app.NotificationChannel(channelId, "Hostel Alerts", android.app.NotificationManager.IMPORTANCE_HIGH)
+            manager.createNotificationChannel(channel)
+        }
+        val builder = androidx.core.app.NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+        
+        manager.notify((1000..9999).random(), builder.build())
     }
 }

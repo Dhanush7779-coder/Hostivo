@@ -124,18 +124,26 @@ fun ProfileScreen(
                                 fontFamily = FontFamily.Monospace
                             )
                             Divider(color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f))
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                  Text("Email ID", color = subTextColor)
-                                  Text(studentEmail, color = textColor, fontWeight = FontWeight.Bold)
+                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Email ID", color = subTextColor, style = MaterialTheme.typography.bodySmall)
+                                Text(studentEmail, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                             }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                  Text("Phone Number", color = subTextColor)
-                                  Text(studentPhone, color = textColor, fontWeight = FontWeight.Bold)
+                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Phone Number", color = subTextColor, style = MaterialTheme.typography.bodySmall)
+                                Text(studentPhone, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                             }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                  Text("Hostel Block & Room", color = subTextColor)
-                                  Text("$studentBlock, Room $studentRoom", color = textColor, fontWeight = FontWeight.Bold)
+                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Hostel Block & Room", color = subTextColor, style = MaterialTheme.typography.bodySmall)
+                                Text("$studentBlock, Room $studentRoom", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                             }
+                             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                 Text("Gender", color = subTextColor, style = MaterialTheme.typography.bodySmall)
+                                 Text(currentStudent?.gender ?: "Not Specified", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                             }
+                             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                 Text("Date of Birth", color = subTextColor, style = MaterialTheme.typography.bodySmall)
+                                 Text(currentStudent?.dob ?: "Not Specified", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                             }
                         }
                     }
 
@@ -149,21 +157,21 @@ fun ProfileScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Divider(color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f))
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Parent Name", color = subTextColor)
-                                Text("Ramesh Kumar Vance", color = textColor, fontWeight = FontWeight.Bold)
+                             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                 Text("Parent Name", color = subTextColor, style = MaterialTheme.typography.bodySmall)
+                                 Text(currentStudent?.fatherName ?: "C Venkatesh", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                             }
+                             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                 Text("Parent Phone Number", color = subTextColor, style = MaterialTheme.typography.bodySmall)
+                                 Text(currentStudent?.emergencyPhone ?: "9573741654", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                             }
+                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Blood Group", color = subTextColor, style = MaterialTheme.typography.bodySmall)
+                                Text("O+", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                             }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Parent Phone Number", color = subTextColor)
-                                Text("+91 9988776655", color = textColor, fontWeight = FontWeight.Bold)
-                            }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Blood Group", color = subTextColor)
-                                Text("O+", color = textColor, fontWeight = FontWeight.Bold)
-                            }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Health Problems", color = subTextColor)
-                                Text("Dust, Penicillin", color = textColor, fontWeight = FontWeight.Bold)
+                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Health Problems", color = subTextColor, style = MaterialTheme.typography.bodySmall)
+                                Text("Dust, Penicillin", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }

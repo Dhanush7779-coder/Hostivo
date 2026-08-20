@@ -1,0 +1,52 @@
+{
+  "rules": {
+    "students": {
+      "$student_id": {
+        ".read": "auth != null",
+        ".write": "auth != null && (
+          !data.exists() || 
+          (
+            auth.token.email == 'ammananasanju@gmail.com' || 
+            auth.token.email.endsWith('@hostivo.edu') || 
+            (
+              data.child('role').val() == 'Student' && 
+              newData.child('role').val() == 'Student' && 
+              newData.child('feePaidStatus').val() == data.child('feePaidStatus').val() &&
+              newData.child('paymentStatus').val() == data.child('paymentStatus').val() &&
+              newData.child('approvalStatus').val() == data.child('approvalStatus').val() &&
+              newData.child('room').val() == data.child('room').val()
+            )
+          )
+        )"
+      }
+    },
+    "payments": {
+      "$payment_id": {
+        ".read": "auth != null",
+        ".write": "auth != null && (
+          (auth.token.email == 'ammananasanju@gmail.com') ||
+          (!data.exists() && newData.child('paymentStatus').val() == 'UNDER_VERIFICATION')
+        )"
+      }
+    },
+    "rooms": {
+      ".read": "auth != null",
+      ".write": "auth != null && (auth.token.email == 'ammananasanju@gmail.com' || auth.token.email.endsWith('@hostivo.edu'))"
+    },
+    "complaints": {
+      "$complaint_id": {
+        ".read": "auth != null",
+        ".write": "auth != null && (
+          !data.exists() || 
+          data.child('studentRoll').val() == auth.uid || 
+          auth.token.email.endsWith('@hostivo.edu') || 
+          auth.token.email == 'ammananasanju@gmail.com'
+        )"
+      }
+    },
+    "announcements": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.email == 'ammananasanju@gmail.com'"
+    }
+  }
+}

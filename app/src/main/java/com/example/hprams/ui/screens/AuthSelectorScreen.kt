@@ -1,20 +1,25 @@
 package com.example.hprams.ui.screens
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.alpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -24,10 +29,14 @@ import androidx.compose.ui.unit.sp
 import com.example.hprams.R
 import com.example.hprams.ui.components.*
 import com.example.hprams.theme.isAppDarkTheme
+import com.example.hprams.theme.AccentColor
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 
 @Composable
 fun AuthSelectorScreen(
-    onGoogleClick: () -> Unit,
+    onGoogleSuccess: (String, String) -> Unit, // email, displayName
     onPhoneClick: () -> Unit,
     onEmailClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -35,6 +44,39 @@ fun AuthSelectorScreen(
     val isDark = isAppDarkTheme()
     val textColor = getAppTextColor()
     val subTextColor = getAppSubTextColor()
+    val context = LocalContext.current
+
+    // Google Sign-In Client configuration
+    val token = "603856360970-b0pof4kakv3lugvtos3fe612mlka2p34.apps.googleusercontent.com"
+    val gso = remember {
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(token)
+            .requestEmail()
+            .build()
+    }
+    val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val email = account?.email ?: ""
+            val displayName = account?.displayName ?: ""
+            if (email.isNotEmpty()) {
+                onGoogleSuccess(email, displayName)
+            } else {
+                Toast.makeText(context, "Google Sign-In returned empty email.", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(
+                context,
+                "Google Sign-In failed: ${e.localizedMessage ?: "Unknown Error"}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
 
     GlassBackground(modifier = modifier) {
         Box(
@@ -61,12 +103,12 @@ fun AuthSelectorScreen(
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.nest_campus_logo),
-                            contentDescription = "Nest Campus Logo",
-                            modifier = Modifier.size(72.dp)
+                            contentDescription = "Hostivo Logo",
+                            modifier = Modifier.size(96.dp)
                         )
                         Text(
-                            text = "Welcome to Nest Campus",
-                            color = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66),
+                            text = "Welcome to Hostivo",
+                            color = AccentColor,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
@@ -79,9 +121,9 @@ fun AuthSelectorScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // Buttons
+                    // Buttons (Always active since Terms were accepted on Splash)
                     Column(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -89,12 +131,16 @@ fun AuthSelectorScreen(
                         // Google Login
                         GlassButton(
                             text = "Continue with Google",
-                            onClick = onGoogleClick,
+                            onClick = {
+                                googleSignInClient.signOut().addOnCompleteListener {
+                                    googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                }
+                            },
                             icon = {
                                 Icon(
                                     imageVector = Icons.Default.Login,
                                     contentDescription = null,
-                                    tint = if (isDark) Color(0xFF003735) else Color.White
+                                    tint = if (isDark) Color(0xFF1E222B) else Color.White
                                 )
                             }
                         )
@@ -123,31 +169,7 @@ fun AuthSelectorScreen(
                             )
                         }
 
-                        // Phone Login
-                        GhostButton(
-                            text = "Phone Number",
-                            onClick = onPhoneClick,
-                            leadingIcon = {
-                                Box(
-                                    modifier = Modifier
-                                        .background(if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
-                                        .padding(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Smartphone,
-                                        contentDescription = null,
-                                        tint = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
-                                    )
-                                }
-                            },
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.ChevronRight,
-                                    contentDescription = null,
-                                    tint = subTextColor
-                                )
-                            }
-                        )
+
 
                         // Email Login
                         GhostButton(
@@ -162,7 +184,7 @@ fun AuthSelectorScreen(
                                     Icon(
                                         imageVector = Icons.Default.Mail,
                                         contentDescription = null,
-                                        tint = if (isDark) Color(0xFF29FCF3) else Color(0xFF006A66)
+                                        tint = AccentColor
                                     )
                                 }
                             },
@@ -176,7 +198,7 @@ fun AuthSelectorScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Footer
                     Text(

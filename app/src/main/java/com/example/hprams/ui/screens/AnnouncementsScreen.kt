@@ -2,11 +2,15 @@ package com.example.hprams.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -49,49 +53,68 @@ fun AnnouncementsScreen(
             },
             containerColor = Color.Transparent
         ) { padding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(4) { index ->
-                    val isEmergency = index == 0
-                    GlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+             val list by remember {
+                 derivedStateOf {
+                     val userRole = com.example.hprams.data.HostelDataStore.currentRole
+                     com.example.hprams.data.HostelDataStore.announcements.filter { ann ->
+                         when (ann.targetHostel) {
+                             "All" -> true
+                             "Students" -> userRole == "Student"
+                             "Staff" -> userRole != "Student"
+                             else -> true
+                         }
+                     }
+                 }
+             }
+             if (list.isEmpty()) {
+                 Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                     Text("No announcements posted yet.", color = Color.White.copy(alpha = 0.6f))
+                 }
+             } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
+                ) {
+                    items(list) { announcement ->
+                        val isEmergency = announcement.category.contains("EMERGENCY") || announcement.category.contains("BROADCAST")
+                        GlassCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.Campaign, contentDescription = null, tint = if (isEmergency) Color(0xFFFFB4AB) else Color(0xFF29FCF3))
-                                    Text(
-                                        if (isEmergency) "EMERGENCY BROADCAST" else "GENERAL NOTICE",
-                                        color = if (isEmergency) Color(0xFFFFB4AB) else Color(0xFF29FCF3),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontFamily = FontFamily.Monospace
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.Campaign, contentDescription = null, tint = if (isEmergency) Color(0xFFFFB4AB) else Color(0xFF29FCF3))
+                                        Text(
+                                            announcement.category,
+                                            color = if (isEmergency) Color(0xFFFFB4AB) else Color(0xFF29FCF3),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                    }
+                                    Text(announcement.date, color = Color(0xFFB9CAC8), style = MaterialTheme.typography.bodySmall)
                                 }
-                                Text("13th Aug 2026", color = Color(0xFFB9CAC8), style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    announcement.title,
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    announcement.content,
+                                    color = Color(0xFFB9CAC8),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.alpha(0.8f)
+                                )
                             }
-                            Text(
-                                if (isEmergency) "Water supply maintenance block A" else "Hostel rules & curfew timing strict check",
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                if (isEmergency) "Water supply in Block A will be disconnected between 2 PM to 5 PM today for routine pipe repairs."
-                                else "Curfew is strictly enforced at 10 PM. All students must present their Digital ID pass at the main gate.",
-                                color = Color(0xFFB9CAC8),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.alpha(0.8f)
-                            )
                         }
                     }
                 }
