@@ -334,7 +334,7 @@ fun RoomAvailabilityScreen(
                     }
                 }
 
-                // DB Roommates or Mock Roommates if room has more capacity
+                // DB Roommates allotted by Admin/Warden
                 if (dbRoommates.isNotEmpty()) {
                     dbRoommates.forEachIndexed { idx, rm ->
                         ModernSectionCard {
@@ -388,61 +388,18 @@ fun RoomAvailabilityScreen(
                         }
                     }
                 } else {
-                    // Fallback friendly placeholder roommate preview
-                    val mockRoommates = listOf(
-                        Triple("Rahul Sharma", "231801380012", "Bed 2"),
-                        Triple("Ankit Patel", "231801380045", "Bed 3")
-                    ).take((capacity - 1).coerceAtMost(2))
-
-                    mockRoommates.forEach { (name, roll, bed) ->
-                        ModernSectionCard {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(44.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFFFAF5FF)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = name.first().toString(),
-                                            color = Color(0xFF8B5CF6),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 16.sp
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = name,
-                                                color = Color(0xFF0F172A),
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(Color(0xFFEEF2FF))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(bed, color = Color(0xFF6366F1), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                            }
-                                        }
-                                        Text(
-                                            text = "Roll: $roll • Computer Science",
-                                            color = Color(0xFF64748B),
-                                            fontSize = 12.sp
-                                        )
-                                    }
-                                }
-                            }
+                    ModernSectionCard {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.Default.Group, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(32.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("No other roommates allotted yet.", color = Color(0xFF0F172A), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text("Room allocations are managed by Admin/Warden.", color = Color(0xFF64748B), fontSize = 11.sp)
                         }
                     }
                 }

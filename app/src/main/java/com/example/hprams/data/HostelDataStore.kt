@@ -27,7 +27,8 @@ data class StudentProfile(
     val fatherName: String = "",
     val emergencyPhone: String = "",
     val role: String = "Student", // "Student", "Warden", "Security"
-    val dob: String = ""
+    val dob: String = "",
+    var profileImageUrl: String = ""
 )
 
 data class RoomChangeRequest(
