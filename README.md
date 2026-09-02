@@ -1,33 +1,70 @@
-# HPRAMS: Luxury Campus Living Smart App (Android Client)
+# Hostivo - HPRAMS (Hostel Process & Resource Allocation Management System)
 
-This is the premium Jetpack Compose Android client for HPRAMS (Hostel Management and Portal System), featuring a modern **Lumina Glass** (glassmorphic + OLED dark-first) design.
+> **HPRAMS** stands for **Hostel Process & Resource Allocation Management System**.
 
-## Firebase Setup Instructions
+## 📖 About the App
+Hostivo (HPRAMS) is a modern, unified campus hostel management mobile platform designed to digitize and streamline daily residential operations. It brings students, wardens, security personnel, and administrators together under a synchronized, role-based ecosystem. The app automates smart room allocation with live occupancy indicators and simplifies semester fee collections through both online gateways and receipt verifications. It replaces manual registers with digital gate passes featuring QR checkpoints and real-time curfew tracking. With integrated maintenance ticketing, profile customization, and instant announcement broadcasts, Hostivo delivers a secure, paperless, and seamless hostel living experience.
 
-To get the app fully operational, you must configure a project in the Firebase Console:
+---
 
-1. **Create a Firebase Project**:
-   - Go to [Firebase Console](https://console.firebase.google.com/).
-   - Create a project named `HPRAMS`.
+## 🎯 Key Outcomes & Benefits
+- **100% Paperless Administration:** Eliminates manual record-keeping for room allotments, gate passes, fee dues, and discipline fines.
+- **Enhanced Campus Security & Safety:** Enables live monitoring of student movements with automated check-in/out timestamps and curfew violation alerts.
+- **Transparent & Faster Financial Processing:** Delivers instant fee payments via Razorpay, external receipt uploads, and real-time transaction reconciliation.
+- **Optimized Room & Asset Management:** Provides visual occupancy metrics to prevent overcrowding and maximize hostel capacity planning.
+- **Quicker Complaint Resolution:** Accelerates maintenance turnaround through categorized grievance tickets and handyman status tracking.
+- **Instant Campus Communication:** Keeps all residents informed with real-time targeted notices for mess menus, events, and urgent hostel circulars.
 
-2. **Add Android App**:
-   - Register your Android app with package name: `com.example.hprams`
-   - Download the generated `google-services.json` file.
-   - Place `google-services.json` in the app module directory at:
-     `E:\HPRAMS-Android\app\google-services.json`
+---
 
-3. **Enable Firebase Products in Console**:
-   - **Authentication**:
-     - Enable **Email/Password** provider.
-     - Enable **Phone** provider (for OTP).
-     - Enable **Google Sign-In** provider.
-   - **Cloud Firestore**:
-     - Enable Firestore Database in Test mode or Production mode.
-     - Deploy the security rules located in `firebase/firestore.rules`.
-   - **Cloud Storage**:
-     - Enable Cloud Storage for image uploads (e.g. complaint photos).
-     - Deploy rules from `firebase/storage.rules`.
-   - **Firebase Cloud Messaging (FCM)**:
-     - Enable Cloud Messaging for push notifications.
-   - **Cloud Functions**:
-     - Deploy the function hooks located in `firebase/functions` to handle backend triggers like auto-allocation, capacity enforcement, and complaint logs.
+## 🚀 Core Modules & Features
+
+### 🎓 1. Student Portal
+- **Dashboard & Home:** Quick shortcuts for Gate Pass, Fee Portal, Support, and Community.
+- **Smart Room Showcase:** View allocated Block, Room number, Floor, Roommates, and 8+ amenities.
+- **Fee Management:** Semester dues summary, Razorpay online gateway, and external receipt uploads with payment history.
+- **Support & Complaints:** Raise maintenance tickets with photo attachments and track resolution status.
+- **Profile Self-Service:** Edit personal contact details, guardian info, and upload custom profile photos.
+
+### 🛡️ 2. Warden Console
+- **Jurisdiction Dashboard:** Dedicated Boys/Girls hostel supervision.
+- **Room Shift Approvals:** Review and approve student room change requests with instant capacity checks.
+- **Gate Pass Approvals:** One-tap approval for student outing and emergency home passes.
+- **Discipline & Fines:** Issue disciplinary penalties with violation reasons and amounts.
+- **Broadcaster:** Publish targeted hostel notices for mess menus, maintenance, and events.
+
+### 👮 3. Security Checkpoint
+- **Live Pass Verifier:** Real-time search and QR-based gate pass validation.
+- **Check-In / Check-Out:** Instant timestamp logging for student exits and returns.
+- **Curfew Tracker:** Automated late-entry logs and curfew monitoring.
+
+### 🏛️ 4. Admin Management Center
+- **Visual Room Allotment:** Interactive room selector with live occupancy tracking (`1/4 Occupied` to `Full`).
+- **Account Creation & Password Setup:** Create and manage credentials for Students, Wardens, and Security officers.
+- **Financial Audit & Reconciliation:** Review and verify offline bank receipts and fee transactions.
+
+---
+
+## 🛠️ Technology Stack
+- **Frontend / UI:** Android Jetpack Compose, Material 3, Coil Image Loader
+- **Language:** Kotlin
+- **Backend & Database:** Firebase Realtime Database, Firebase Authentication, Firebase Storage
+- **Payment Gateway:** Razorpay Android SDK
+- **Local Persistence:** Room Database / Cache
+
+---
+
+## 🔧 Setup & Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Dhanush7779-coder/Hostivo.git
+   ```
+
+2. **Add `google-services.json`:**
+   Place your `google-services.json` file inside `app/google-services.json`.
+
+3. **Build and Run:**
+   ```bash
+   ./gradlew assembleDebug
+   ```
