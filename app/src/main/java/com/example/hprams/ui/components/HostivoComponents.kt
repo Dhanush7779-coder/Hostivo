@@ -440,23 +440,47 @@ fun ModernSearchBar(
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = null,
-                tint = Color(0xFF94A3B8),
-                modifier = Modifier.size(22.dp)
+                contentDescription = "Search",
+                tint = Color(0xFF64748B),
+                modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
-            if (query.isEmpty()) {
-                Text(
-                    text = placeholder,
-                    color = Color(0xFF94A3B8),
-                    fontSize = 14.sp
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (query.isEmpty()) {
+                    Text(
+                        text = placeholder,
+                        color = Color(0xFF94A3B8),
+                        fontSize = 14.sp
+                    )
+                }
+                androidx.compose.foundation.text.BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(
+                        color = Color(0xFF0F172A),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    cursorBrush = androidx.compose.ui.graphics.SolidColor(Color(0xFF6366F1)),
+                    modifier = Modifier.fillMaxWidth()
                 )
-            } else {
-                Text(
-                    text = query,
-                    color = Color(0xFF0F172A),
-                    fontSize = 14.sp
-                )
+            }
+            if (query.isNotEmpty()) {
+                IconButton(
+                    onClick = { onQueryChange("") },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Clear",
+                        tint = Color(0xFF64748B),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
     }
