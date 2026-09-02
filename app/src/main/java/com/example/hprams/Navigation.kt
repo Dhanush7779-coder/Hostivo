@@ -25,7 +25,11 @@ fun MainNavigation() {
     // -------------------------------------------------------------
     composable("splash") {
       SplashScreen(
-        onGetStartedClick = { navController.navigate("auth_selector") },
+        onGetStartedClick = { 
+          navController.navigate("email_login") {
+            popUpTo("splash") { inclusive = true }
+          } 
+        },
         onAutoLogin = { dest ->
             navController.navigate(dest) {
                 popUpTo("splash") { inclusive = true }
@@ -38,6 +42,7 @@ fun MainNavigation() {
     composable("auth_selector") {
       AuthSelectorScreen(
         onGoogleSuccess = { email, name ->
+          val sharedPrefs = navController.context.getSharedPreferences("HostivoPrefs", android.content.Context.MODE_PRIVATE)
           val matchedStudent = com.example.hprams.data.HostelDataStore.students.find { it.email.lowercase() == email.lowercase() }
           if (matchedStudent != null) {
             if (matchedStudent.approvalStatus != "Approved") {
@@ -45,6 +50,10 @@ fun MainNavigation() {
                 popUpTo("auth_selector") { inclusive = true }
               }
             } else {
+              sharedPrefs.edit()
+                .putString("loggedInRole", matchedStudent.role)
+                .putString("loggedInRoll", matchedStudent.roll)
+                .apply()
               com.example.hprams.data.HostelDataStore.currentRole = matchedStudent.role
               com.example.hprams.data.HostelDataStore.currentStudentRoll = matchedStudent.roll
               val destination = when (matchedStudent.role) {
@@ -71,7 +80,7 @@ fun MainNavigation() {
 
     composable("approval_pending") {
       ApprovalPendingScreen(
-        onBackClick = { navController.navigate("auth_selector") { popUpTo("splash") { inclusive = true } } },
+        onBackClick = { navController.navigate("email_login") { popUpTo("splash") { inclusive = true } } },
         modifier = Modifier.fillMaxSize()
       )
     }
@@ -79,6 +88,49 @@ fun MainNavigation() {
     composable("email_login") {
       EmailLoginScreen(
         onBackClick = { navController.popBackStack() },
+        onForgotPasswordClick = { navController.navigate("forgot_password") },
+        onGoogleSuccess = { email, name ->
+          val sharedPrefs = navController.context.getSharedPreferences("HostivoPrefs", android.content.Context.MODE_PRIVATE)
+          val trimmedEmail = email.trim().lowercase()
+          if (trimmedEmail == "ammananasanju@gmail.com") {
+            sharedPrefs.edit()
+              .putString("loggedInRole", "Admin")
+              .putString("loggedInRoll", "")
+              .apply()
+            com.example.hprams.data.HostelDataStore.currentRole = "Admin"
+            navController.navigate("admin_dashboard") {
+              popUpTo(navController.graph.startDestinationId) { inclusive = true }
+            }
+          } else {
+            val matchedStudent = com.example.hprams.data.HostelDataStore.students.find { it.email.lowercase() == trimmedEmail }
+            if (matchedStudent != null) {
+              if (matchedStudent.approvalStatus != "Approved") {
+                navController.navigate("approval_pending") {
+                  popUpTo("email_login") { inclusive = true }
+                }
+              } else {
+                sharedPrefs.edit()
+                  .putString("loggedInRole", matchedStudent.role)
+                  .putString("loggedInRoll", matchedStudent.roll)
+                  .apply()
+                com.example.hprams.data.HostelDataStore.currentRole = matchedStudent.role
+                com.example.hprams.data.HostelDataStore.currentStudentRoll = matchedStudent.roll
+                val destination = when (matchedStudent.role) {
+                  "Warden" -> "warden_dashboard"
+                  "Security" -> "security_dashboard"
+                  else -> "student_dashboard"
+                }
+                navController.navigate(destination) {
+                  popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                }
+              }
+            } else {
+              com.example.hprams.data.HostelDataStore.prefilledEmail = email
+              com.example.hprams.data.HostelDataStore.prefilledName = name
+              navController.navigate("email_register")
+            }
+          }
+        },
         onSignInClick = { email, pass, role ->
           val sharedPrefs = navController.context.getSharedPreferences("HostivoPrefs", android.content.Context.MODE_PRIVATE)
           val trimmedEmail = email.trim().lowercase()
@@ -104,7 +156,7 @@ fun MainNavigation() {
                           val matched = com.example.hprams.data.HostelDataStore.students.find { it.email.lowercase() == trimmedEmail }
                           if (role != "Admin" && role != "Guest" && matched != null && matched.approvalStatus != "Approved") {
                               navController.navigate("approval_pending") {
-                                  popUpTo("auth_selector") { inclusive = true }
+                                  popUpTo("email_login") { inclusive = true }
                               }
                           } else {
                               if (role == "Warden" && matched != null) {
@@ -126,7 +178,31 @@ fun MainNavigation() {
                               }
                           }
                       } else {
-                          android.widget.Toast.makeText(navController.context, "Login credentials incorrect. Please try again.", android.widget.Toast.LENGTH_LONG).show()
+                          // Fallback local verification if student exists in HostelDataStore and approved
+                          val matched = com.example.hprams.data.HostelDataStore.students.find { it.email.lowercase() == trimmedEmail }
+                          if (matched != null) {
+                              if (matched.approvalStatus != "Approved") {
+                                  navController.navigate("approval_pending") {
+                                      popUpTo("email_login") { inclusive = true }
+                                  }
+                              } else {
+                                  sharedPrefs.edit()
+                                      .putString("loggedInRole", matched.role)
+                                      .putString("loggedInRoll", matched.roll)
+                                      .apply()
+                                  val destination = when (matched.role) {
+                                      "Warden" -> "warden_dashboard"
+                                      "Admin" -> "admin_dashboard"
+                                      "Security" -> "security_dashboard"
+                                      else -> "student_dashboard"
+                                  }
+                                  navController.navigate(destination) {
+                                      popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                  }
+                              }
+                          } else {
+                              android.widget.Toast.makeText(navController.context, "Login credentials incorrect. Please try again.", android.widget.Toast.LENGTH_LONG).show()
+                          }
                       }
                   }
           }
@@ -238,6 +314,24 @@ fun MainNavigation() {
       )
     }
 
+    composable("forgot_password") {
+      ForgotPasswordScreen(
+        onBackClick = { navController.popBackStack() },
+        onResetClick = { email ->
+          auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+              if (task.isSuccessful) {
+                android.widget.Toast.makeText(navController.context, "Password reset email sent to $email", android.widget.Toast.LENGTH_LONG).show()
+                navController.popBackStack()
+              } else {
+                android.widget.Toast.makeText(navController.context, "Failed: ${task.exception?.message}", android.widget.Toast.LENGTH_LONG).show()
+              }
+            }
+        },
+        modifier = Modifier.fillMaxSize()
+      )
+    }
+
     // -------------------------------------------------------------
     // STUDENT FLOW
     // -------------------------------------------------------------
@@ -248,9 +342,11 @@ fun MainNavigation() {
           val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN).build()
           com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(navController.context, gso).signOut()
           val sharedPrefs = navController.context.getSharedPreferences("HostivoPrefs", android.content.Context.MODE_PRIVATE)
-          sharedPrefs.edit().remove("loggedInRole").remove("loggedInRoll").apply()
-          navController.navigate("auth_selector") {
-            popUpTo("splash") { inclusive = true }
+          sharedPrefs.edit().clear().apply()
+          com.example.hprams.data.HostelDataStore.currentRole = "Student"
+          com.example.hprams.data.HostelDataStore.currentStudentRoll = ""
+          navController.navigate("email_login") {
+            popUpTo(navController.graph.startDestinationId) { inclusive = true }
           } 
         },
         onProfileClick = { navController.navigate("profile") },
@@ -284,21 +380,6 @@ fun MainNavigation() {
       )
     }
 
-    composable("hostel_application") {
-      HostelApplicationScreen(
-        onBackClick = { navController.popBackStack() },
-        onSubmitClick = { navController.navigate("allocation_status") },
-        modifier = Modifier.fillMaxSize()
-      )
-    }
-
-    composable("allocation_status") {
-      AllocationStatusScreen(
-        onBackClick = { navController.popBackStack() },
-        modifier = Modifier.fillMaxSize()
-      )
-    }
-
     composable("complaints_list") {
       ComplaintsListScreen(
         onHomeClick = { navController.navigate("student_dashboard") },
@@ -307,6 +388,21 @@ fun MainNavigation() {
         onProfileClick = { navController.navigate("profile") },
         onNewComplaintClick = { navController.navigate("new_complaint") },
         onComplaintClick = { id -> navController.navigate("complaint_detail/$id") },
+        modifier = Modifier.fillMaxSize()
+      )
+    }
+
+    composable("hostel_application") {
+      HostelApplicationScreen(
+        onBackClick = { navController.popBackStack() },
+        onSubmitClick = { navController.navigate("student_dashboard") },
+        modifier = Modifier.fillMaxSize()
+      )
+    }
+
+    composable("allocation_status") {
+      AllocationStatusScreen(
+        onBackClick = { navController.popBackStack() },
         modifier = Modifier.fillMaxSize()
       )
     }
@@ -356,9 +452,11 @@ fun MainNavigation() {
           val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN).build()
           com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(navController.context, gso).signOut()
           val sharedPrefs = navController.context.getSharedPreferences("HostivoPrefs", android.content.Context.MODE_PRIVATE)
-          sharedPrefs.edit().remove("loggedInRole").remove("loggedInRoll").apply()
-          navController.navigate("auth_selector") {
-            popUpTo("splash") { inclusive = true }
+          sharedPrefs.edit().clear().apply()
+          com.example.hprams.data.HostelDataStore.currentRole = "Student"
+          com.example.hprams.data.HostelDataStore.currentStudentRoll = ""
+          navController.navigate("email_login") {
+            popUpTo(navController.graph.startDestinationId) { inclusive = true }
           }
         },
         modifier = Modifier.fillMaxSize()
@@ -382,9 +480,11 @@ fun MainNavigation() {
           val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN).build()
           com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(navController.context, gso).signOut()
           val sharedPrefs = navController.context.getSharedPreferences("HostivoPrefs", android.content.Context.MODE_PRIVATE)
-          sharedPrefs.edit().remove("loggedInRole").remove("loggedInRoll").apply()
-          navController.navigate("auth_selector") {
-            popUpTo("splash") { inclusive = true }
+          sharedPrefs.edit().clear().apply()
+          com.example.hprams.data.HostelDataStore.currentRole = "Student"
+          com.example.hprams.data.HostelDataStore.currentStudentRoll = ""
+          navController.navigate("email_login") {
+            popUpTo(navController.graph.startDestinationId) { inclusive = true }
           }
         },
         onAllocationsClick = { navController.navigate("room_allocation_management") },
@@ -431,13 +531,38 @@ fun MainNavigation() {
           val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN).build()
           com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(navController.context, gso).signOut()
           val sharedPrefs = navController.context.getSharedPreferences("HostivoPrefs", android.content.Context.MODE_PRIVATE)
-          sharedPrefs.edit().remove("loggedInRole").remove("loggedInRoll").apply()
-          navController.navigate("auth_selector") {
-            popUpTo("splash") { inclusive = true }
+          sharedPrefs.edit().clear().apply()
+          com.example.hprams.data.HostelDataStore.currentRole = "Student"
+          com.example.hprams.data.HostelDataStore.currentStudentRoll = ""
+          navController.navigate("email_login") {
+            popUpTo(navController.graph.startDestinationId) { inclusive = true }
           }
         },
-        onAnalyticsClick = { navController.navigate("admin_analytics") },
-        onReportsClick = { navController.navigate("admin_reports") },
+        onAccountsClick = { navController.navigate("admin_accounts") },
+        onFinanceClick = { navController.navigate("admin_finance") },
+        onSecurityShiftsClick = { navController.navigate("admin_security_shifts") },
+        onReportsClick = { navController.navigate("admin_finance") },
+        modifier = Modifier.fillMaxSize()
+      )
+    }
+
+    composable("admin_accounts") {
+      AdminAccountsScreen(
+        onBackClick = { navController.popBackStack() },
+        modifier = Modifier.fillMaxSize()
+      )
+    }
+
+    composable("admin_finance") {
+      AdminFinanceScreen(
+        onBackClick = { navController.popBackStack() },
+        modifier = Modifier.fillMaxSize()
+      )
+    }
+
+    composable("admin_security_shifts") {
+      AdminSecurityShiftsScreen(
+        onBackClick = { navController.popBackStack() },
         modifier = Modifier.fillMaxSize()
       )
     }
@@ -450,7 +575,7 @@ fun MainNavigation() {
     }
 
     composable("admin_reports") {
-      AdminReportsScreen(
+      AdminFinanceScreen(
         onBackClick = { navController.popBackStack() },
         modifier = Modifier.fillMaxSize()
       )
@@ -466,9 +591,11 @@ fun MainNavigation() {
           val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN).build()
           com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(navController.context, gso).signOut()
           val sharedPrefs = navController.context.getSharedPreferences("HostivoPrefs", android.content.Context.MODE_PRIVATE)
-          sharedPrefs.edit().remove("loggedInRole").remove("loggedInRoll").apply()
-          navController.navigate("auth_selector") {
-            popUpTo("splash") { inclusive = true }
+          sharedPrefs.edit().clear().apply()
+          com.example.hprams.data.HostelDataStore.currentRole = "Student"
+          com.example.hprams.data.HostelDataStore.currentStudentRoll = ""
+          navController.navigate("email_login") {
+            popUpTo(navController.graph.startDestinationId) { inclusive = true }
           }
         },
         onHostelInfoClick = { navController.navigate("hostel_info") },
@@ -498,9 +625,11 @@ fun MainNavigation() {
           val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN).build()
           com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(navController.context, gso).signOut()
           val sharedPrefs = navController.context.getSharedPreferences("HostivoPrefs", android.content.Context.MODE_PRIVATE)
-          sharedPrefs.edit().remove("loggedInRole").remove("loggedInRoll").apply()
-          navController.navigate("auth_selector") {
-            popUpTo("splash") { inclusive = true }
+          sharedPrefs.edit().clear().apply()
+          com.example.hprams.data.HostelDataStore.currentRole = "Student"
+          com.example.hprams.data.HostelDataStore.currentStudentRoll = ""
+          navController.navigate("email_login") {
+            popUpTo(navController.graph.startDestinationId) { inclusive = true }
           }
         },
         modifier = Modifier.fillMaxSize()

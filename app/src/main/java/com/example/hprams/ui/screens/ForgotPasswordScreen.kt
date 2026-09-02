@@ -1,23 +1,22 @@
 package com.example.hprams.ui.screens
 
+import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Mail
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.hprams.ui.components.GlassBackground
-import com.example.hprams.ui.components.GlassButton
-import com.example.hprams.ui.components.GlassCard
-import com.example.hprams.ui.components.GlassTextField
+import androidx.compose.ui.unit.sp
+import com.example.hprams.ui.components.*
 
 @Composable
 fun ForgotPasswordScreen(
@@ -25,81 +24,75 @@ fun ForgotPasswordScreen(
     onResetClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var email by remember { mutableStateOf("") }
 
-    GlassBackground(modifier = modifier) {
+    HostivoBackground(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .padding(horizontal = 24.dp, vertical = 16.dp)
                 .safeDrawingPadding()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Back Button
-            IconButton(
-                onClick = onBackClick,
-                modifier = Modifier.align(Alignment.Start)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Go Back",
-                    tint = Color.White
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Header
+            HostivoHeader(
+                title = "Forgot Password",
+                subtitle = "Enter your registered email to receive reset instructions."
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // Card
+            HostivoCard {
+                HostivoTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = "Email Address",
+                    placeholder = "name@hostivo.edu",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                HostivoPrimaryButton(
+                    text = "Send Reset Link",
+                    onClick = {
+                        if (email.isBlank()) {
+                            Toast.makeText(context, "Please enter your email address", Toast.LENGTH_SHORT).show()
+                            return@HostivoPrimaryButton
+                        }
+                        onResetClick(email.trim())
+                    }
                 )
             }
 
-            Box(
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // Back to Sign In
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .widthIn(max = 400.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Header
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "HPRAMS",
-                            color = Color(0xFF29FCF3),
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            text = "Enter your email to receive a password reset link",
-                            color = Color(0xFFB9CAC8),
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-
-                    // Card
-                    GlassCard(modifier = Modifier.fillMaxWidth()) {
-                        // Email Field
-                        GlassTextField(
-                            value = email,
-                            onValueChange = { email = it },
-                            label = "Institutional Email",
-                            placeholder = "john.doe@hprams.edu",
-                            leadingIcon = Icons.Default.Mail,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Submit
-                        GlassButton(
-                            text = "Send Reset Link",
-                            onClick = { onResetClick(email) }
-                        )
-                    }
-                }
+                Text(
+                    text = "Remember your password? ",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 14.sp
+                )
+                Text(
+                    text = "Sign In",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable(onClick = onBackClick)
+                )
             }
         }
     }

@@ -132,8 +132,8 @@ object HostelDataStore {
     var onPaymentErrorCallback by mutableStateOf<((Int, String) -> Unit)?>(null)
 
     // Current logged-in user context
-    var currentRole by mutableStateOf("Student")
-    var currentStudentRoll by mutableStateOf("231801380007")
+    var currentRole by mutableStateOf("Admin")
+    var currentStudentRoll by mutableStateOf("")
     var prefilledEmail by mutableStateOf("")
     var prefilledName by mutableStateOf("")
 
@@ -146,9 +146,9 @@ object HostelDataStore {
     var securityIsPresentToday by mutableStateOf(false)
     var securityOfficerName by mutableStateOf("")
 
-    // Master configuration settings with Ramprasad as Warden and C.Venkat Dhanush as Admin
-    var chiefWardenName by mutableStateOf("Ramprasad")
-    var chiefWardenPhone by mutableStateOf("9492409574")
+    // Master configuration settings with only Admin
+    var chiefWardenName by mutableStateOf("")
+    var chiefWardenPhone by mutableStateOf("")
     var blockAWardenName by mutableStateOf("")
     var blockAWardenPhone by mutableStateOf("")
     var blockBWardenName by mutableStateOf("")
@@ -567,6 +567,16 @@ object HostelDataStore {
 
     // Write helper functions
     fun saveStudent(profile: StudentProfile) {
+        // Immediate local state update
+        val existingIndex = students.indexOfFirst { it.roll == profile.roll }
+        if (existingIndex >= 0) {
+            students[existingIndex] = profile
+        } else {
+            students.add(0, profile)
+        }
+        // Save to Room Cache
+        saveStudentsToCache(students.toList())
+        // Push to Firebase Realtime Database
         dbRef.child("students").child(profile.roll).setValue(profile)
     }
 

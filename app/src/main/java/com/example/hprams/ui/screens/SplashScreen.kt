@@ -69,12 +69,12 @@ fun SplashScreen(
 
     val sharedPrefs = remember { context.getSharedPreferences("HostivoPrefs", android.content.Context.MODE_PRIVATE) }
 
-    var termsAccepted by remember { mutableStateOf(sharedPrefs.getBoolean("termsAccepted", false)) }
+    var termsAccepted by remember { mutableStateOf(sharedPrefs.getBoolean("termsAccepted", true)) }
     var showTermsDialog by remember { mutableStateOf(false) }
 
-    // Permission simulation dialogs (Only shown once per install)
-    var permissionStep by remember { mutableStateOf(if (sharedPrefs.getBoolean("permissionsAsked", false)) 3 else 1) } 
-    var isAutoRedirecting by remember { mutableStateOf(sharedPrefs.getString("loggedInRole", "").orEmpty().isNotEmpty()) }
+    // Check if session is already saved
+    var permissionStep by remember { mutableStateOf(3) } 
+    var isAutoRedirecting by remember { mutableStateOf(true) }
     
     val auth = remember { com.google.firebase.auth.FirebaseAuth.getInstance() }
     LaunchedEffect(Unit) {
@@ -82,16 +82,6 @@ fun SplashScreen(
         val roll = sharedPrefs.getString("loggedInRoll", "") ?: ""
         
         if (role.isNotEmpty()) {
-            // Wait up to 1.5 seconds for Firebase Auth to load the cached user session
-            for (i in 1..15) {
-                if (auth.currentUser != null) {
-                    break
-                }
-                kotlinx.coroutines.delay(100)
-            }
-        }
-
-        if (auth.currentUser != null && role.isNotEmpty()) {
             com.example.hprams.data.HostelDataStore.currentRole = role
             com.example.hprams.data.HostelDataStore.currentStudentRoll = roll
             if (role == "Warden") {
@@ -109,6 +99,7 @@ fun SplashScreen(
             onAutoLogin(destination)
         } else {
             isAutoRedirecting = false
+            onGetStartedClick()
         }
     }
     if (permissionStep == 1) {

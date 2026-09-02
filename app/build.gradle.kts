@@ -2,7 +2,6 @@ plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.android)
   alias(libs.plugins.compose.compiler)
-  alias(libs.plugins.hilt)
   alias(libs.plugins.ksp)
   alias(libs.plugins.google.services)
 }
@@ -84,11 +83,6 @@ dependencies {
 
   // Navigation (Stable Navigation Compose)
   implementation(libs.androidx.navigation.compose)
-
-  // Hilt
-  implementation(libs.hilt.android)
-  ksp(libs.hilt.compiler)
-  implementation(libs.androidx.hilt.navigation.compose)
 
   // Firebase
   implementation(platform(libs.firebase.bom))

@@ -23,3 +23,6 @@ app/google-services.json
 *.keystore
 secrets.properties
 
+# Kotlin compiler daemon/temporary sessions
+.kotlin/
+*.log
