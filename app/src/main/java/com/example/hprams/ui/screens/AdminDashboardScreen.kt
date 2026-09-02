@@ -36,6 +36,8 @@ fun AdminDashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    androidx.activity.compose.BackHandler { (context as? android.app.Activity)?.finish() }
+
     var selectedTab by remember { mutableStateOf("home") }
     var searchQuery by remember { mutableStateOf("") }
 
@@ -115,22 +117,18 @@ fun AdminDashboardScreen(
                         }
                     }
 
-                    OutlinedTextField(
+                    HostivoTextField(
                         value = broadcastTitle,
                         onValueChange = { broadcastTitle = it },
-                        label = { Text("Announcement Title") },
-                        placeholder = { Text("e.g. Campus Curfew / Mess Timings") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        label = "Announcement Title",
+                        placeholder = "e.g. Campus Curfew / Mess Timings"
                     )
 
-                    OutlinedTextField(
+                    HostivoTextField(
                         value = broadcastContent,
                         onValueChange = { broadcastContent = it },
-                        label = { Text("Detailed Notice / Message") },
-                        placeholder = { Text("Write your message here...") },
-                        modifier = Modifier.fillMaxWidth().height(120.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        label = "Detailed Notice / Message",
+                        placeholder = "Write your message here..."
                     )
                 }
             },

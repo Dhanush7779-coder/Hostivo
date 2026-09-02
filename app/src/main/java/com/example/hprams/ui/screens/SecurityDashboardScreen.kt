@@ -1,6 +1,8 @@
 package com.example.hprams.ui.screens
 
+import android.app.Activity
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -32,9 +34,10 @@ fun SecurityDashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    BackHandler { (context as? Activity)?.finish() }
+
     var selectedTab by remember { mutableStateOf("home") }
     var searchQuery by remember { mutableStateOf("") }
-    var showAiDialog by remember { mutableStateOf(false) }
 
     val officerName = HostelDataStore.securityOfficerName
     val approvedPasses = HostelDataStore.gatePassRequests.filter { it.wardenApproval == "Approved" }
@@ -45,30 +48,13 @@ fun SecurityDashboardScreen(
         return sdf.format(Date())
     }
 
-    if (showAiDialog) {
-        AlertDialog(
-            onDismissRequest = { showAiDialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.SmartToy, contentDescription = null, tint = Color(0xFF6366F1))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Security AI Guard", fontWeight = FontWeight.Bold)
-                }
-            },
-            text = {
-                Text("Officer $officerName: ${approvedPasses.size} active gate passes authorized for checkout today. ${lateLogs.size} late returns flagged.")
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showAiDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
-                ) {
-                    Text("Dismiss", color = Color.White)
-                }
-            },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(20.dp)
-        )
+    val isSearching = searchQuery.isNotBlank()
+    val displayedPasses = if (!isSearching) approvedPasses else {
+        approvedPasses.filter {
+            it.studentName.contains(searchQuery, true) ||
+            it.studentRoll.contains(searchQuery, true) ||
+            it.reason.contains(searchQuery, true)
+        }
     }
 
     Box(
@@ -87,9 +73,9 @@ fun SecurityDashboardScreen(
 
             // 1. Top Greeting Header
             ModernTopGreeting(
-                userName = officerName.split(" ").firstOrNull() ?: officerName,
-                subtitle = "Main Campus Gate Guard",
-                actionIcon = Icons.Default.Person,
+                userName = officerName,
+                subtitle = "Main Security Post • Checkpoint",
+                actionIcon = Icons.Default.Security,
                 onActionClick = { /* Profile */ },
                 onNotificationsClick = { /* Alerts */ }
             )
@@ -98,20 +84,20 @@ fun SecurityDashboardScreen(
             ModernSearchBar(
                 query = searchQuery,
                 onQueryChange = { searchQuery = it },
-                placeholder = "Search student roll, gate pass ID..."
+                placeholder = "Search student roll, name, pass ID..."
             )
 
-            // 3. Hero Action Banner: Active Passes
+            // 3. Hero Action Banner: Security Scanner
             ModernHeroBanner(
-                title = "Main Gate Checkpoint",
-                subtitle = "${approvedPasses.size} Approved passes ready for verification",
-                icon = Icons.Default.Security,
-                onClick = { /* Gate operations */ }
+                title = "QR Gate Scanner",
+                subtitle = "${approvedPasses.size} approved passes ready for verification",
+                icon = Icons.Default.QrCodeScanner,
+                onClick = { Toast.makeText(context, "Ready to scan gate pass QR code", Toast.LENGTH_SHORT).show() }
             )
 
             // 4. Quick Access Header
             Text(
-                text = "Quick Access",
+                text = "Shift Overview",
                 color = Color(0xFF0F172A),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
@@ -130,21 +116,21 @@ fun SecurityDashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     ModernQuickCard(
-                        title = "Out Movement",
-                        subtitle = "Record Student Exit",
+                        title = "Out Students",
+                        subtitle = "${approvedPasses.count { it.checkoutTime.isNotEmpty() && it.checkinTime.isEmpty() }} Outside",
                         icon = Icons.Default.DirectionsWalk,
                         containerColor = CardBlueBg,
                         iconTint = IconBlueTint,
-                        onClick = { /* Record out */ },
+                        onClick = { },
                         modifier = Modifier.weight(1f)
                     )
                     ModernQuickCard(
-                        title = "In Movement",
-                        subtitle = "Record Student Return",
+                        title = "In Campus",
+                        subtitle = "${approvedPasses.count { it.checkinTime.isNotEmpty() }} Returned",
                         icon = Icons.Default.Login,
                         containerColor = CardGreenBg,
                         iconTint = IconGreenTint,
-                        onClick = { /* Record in */ },
+                        onClick = { },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -154,43 +140,52 @@ fun SecurityDashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     ModernQuickCard(
-                        title = "Late Night Logs",
-                        subtitle = "${lateLogs.size} Violations",
-                        icon = Icons.Default.AccessTime,
+                        title = "Curfew Logs",
+                        subtitle = "${lateLogs.size} Curfew Violations",
+                        icon = Icons.Default.HistoryToggleOff,
                         containerColor = CardPinkBg,
                         iconTint = IconPinkTint,
-                        onClick = { /* Late logs */ },
+                        onClick = { },
                         modifier = Modifier.weight(1f)
                     )
                     ModernQuickCard(
-                        title = "Visitor Register",
-                        subtitle = "Guest Check-In",
+                        title = "Visitors",
+                        subtitle = "Gate Entry Registry",
                         icon = Icons.Default.Badge,
                         containerColor = CardPurpleBg,
                         iconTint = IconPurpleTint,
-                        onClick = { /* Visitor logs */ },
+                        onClick = { },
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
 
-            // Live Approved Gate Passes list
-            if (approvedPasses.isNotEmpty()) {
-                Text(
-                    text = "Authorized Passes",
-                    color = Color(0xFF0F172A),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
+            // Live Check-in / Check-out Registry Section
+            Text(
+                text = "Active Gate Approvals (${displayedPasses.size})",
+                color = Color(0xFF0F172A),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
 
+            if (displayedPasses.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No gate passes found.", color = Color(0xFF94A3B8), fontSize = 13.sp)
+                }
+            } else {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    approvedPasses.forEach { pass ->
+                    displayedPasses.forEach { pass ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(18.dp),
@@ -205,10 +200,15 @@ fun SecurityDashboardScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(pass.studentName, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 14.sp)
-                                    Text("Pass #${pass.id} • ${pass.reason}", color = Color(0xFF64748B), fontSize = 12.sp)
-                                    Text("Out: ${pass.outTime.ifEmpty { "Not Left" }} | In: ${pass.inTime.ifEmpty { "Not Returned" }}", color = Color(0xFF6366F1), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                    Text("Roll: ${pass.studentRoll} • ${pass.reason}", color = Color(0xFF64748B), fontSize = 12.sp)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Text("OUT: ${pass.checkoutTime.ifEmpty { "--:--" }}", fontSize = 11.sp, color = Color(0xFFF43F5E), fontWeight = FontWeight.Bold)
+                                        Text("IN: ${pass.checkinTime.ifEmpty { "--:--" }}", fontSize = 11.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                                    }
                                 }
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     if (pass.checkoutTime == "--:--" || pass.checkoutTime.isEmpty()) {
                                         Button(
                                             onClick = {
@@ -216,7 +216,7 @@ fun SecurityDashboardScreen(
                                                 HostelDataStore.saveGatePass(updated)
                                                 Toast.makeText(context, "${pass.studentName} marked OUT", Toast.LENGTH_SHORT).show()
                                             },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1)),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF43F5E)),
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
                                             Text("Mark Out", color = Color.White, fontSize = 11.sp)
@@ -242,19 +242,6 @@ fun SecurityDashboardScreen(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-        }
-
-        // Floating AI Assistant button
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 90.dp, end = 20.dp)
-        ) {
-            ModernFloatingAssistant(
-                name = "Gate AI",
-                subtitle = "Security assistant • Check",
-                onClick = { showAiDialog = true }
-            )
         }
 
         // Modern Bottom Nav Bar

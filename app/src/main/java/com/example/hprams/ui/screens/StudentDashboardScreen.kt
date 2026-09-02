@@ -1,6 +1,8 @@
 package com.example.hprams.ui.screens
 
+import android.app.Activity
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -35,6 +37,8 @@ fun StudentDashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    BackHandler { (context as? Activity)?.finish() }
+
     val currentStudent = HostelDataStore.students.find { it.roll == HostelDataStore.currentStudentRoll }
     val studentName = currentStudent?.name ?: "C.Venkat"
     val studentRoll = currentStudent?.roll ?: "231801380007"
@@ -43,33 +47,7 @@ fun StudentDashboardScreen(
 
     var selectedTab by remember { mutableStateOf("home") }
     var searchQuery by remember { mutableStateOf("") }
-    var showAiDialog by remember { mutableStateOf(false) }
-
-    if (showAiDialog) {
-        AlertDialog(
-            onDismissRequest = { showAiDialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.SmartToy, contentDescription = null, tint = Color(0xFF6366F1))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Hostivo AI Assistant", fontWeight = FontWeight.Bold)
-                }
-            },
-            text = {
-                Text("Hi $studentName! You are assigned to $studentBlock, Room $studentRoom. Need help with room changes, gate passes, or paying fees?")
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showAiDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
-                ) {
-                    Text("Got it", color = Color.White)
-                }
-            },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(20.dp)
-        )
-    }
+    val isSearching = searchQuery.isNotBlank()
 
     Box(
         modifier = modifier
@@ -85,7 +63,7 @@ fun StudentDashboardScreen(
         ) {
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 1. Top Greeting Header matching screenshot
+            // 1. Top Greeting Header
             ModernTopGreeting(
                 userName = studentName.split(" ").firstOrNull() ?: studentName,
                 subtitle = "Ready for your campus day?",
@@ -94,14 +72,62 @@ fun StudentDashboardScreen(
                 onNotificationsClick = { onNotificationsClick() }
             )
 
-            // 2. Search Bar matching screenshot
+            // 2. Search Bar
             ModernSearchBar(
                 query = searchQuery,
                 onQueryChange = { searchQuery = it },
-                placeholder = "Search room, gate pass, complaints..."
+                placeholder = "Search room, gate pass, complaints, fees..."
             )
 
-            // 3. Hero Action Banner matching screenshot
+            // Interactive Search Results
+            if (isSearching) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Quick Navigation", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0F172A))
+                    
+                    val shortcuts = listOf(
+                        Triple("Room Details & Roommates", "View $studentBlock Room $studentRoom", onRoomsClick),
+                        Triple("Fee Portal & Receipts", "Check semester fees and dues", onFinanceClick),
+                        Triple("Gate Pass & Complaints", "Request gate pass or log ticket", onSupportClick),
+                        Triple("Community & Notices", "View hostel announcements", onAnnouncementsClick),
+                        Triple("Student Profile", "Edit contact & profile photo", onProfileClick)
+                    ).filter { it.first.contains(searchQuery, true) || it.second.contains(searchQuery, true) }
+
+                    if (shortcuts.isEmpty()) {
+                        Text("No matching actions found. Try searching for 'room', 'fee', 'pass', 'notice'...", fontSize = 12.sp, color = Color(0xFF94A3B8))
+                    } else {
+                        shortcuts.forEach { (title, sub, action) ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { action() },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                        Text(sub, fontSize = 11.sp, color = Color(0xFF64748B))
+                                    }
+                                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFF94A3B8))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Hero Action Banner
             ModernHeroBanner(
                 title = "Hostel Room & Amenities",
                 subtitle = "Assigned: $studentBlock • Room $studentRoom",

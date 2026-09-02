@@ -349,22 +349,26 @@ fun MainNavigation() {
             popUpTo(navController.graph.startDestinationId) { inclusive = true }
           } 
         },
-        onProfileClick = { navController.navigate("profile") },
-        onNotificationsClick = { navController.navigate("notifications") },
-        onRoomsClick = { navController.navigate("room_availability") },
-        onFinanceClick = { navController.navigate("finance_dashboard") },
-        onSupportClick = { navController.navigate("complaints_list") },
-        onAnnouncementsClick = { navController.navigate("announcements") },
+        onProfileClick = { navController.navigate("profile") { popUpTo("student_dashboard") { inclusive = false } } },
+        onNotificationsClick = { navController.navigate("notifications") { popUpTo("student_dashboard") { inclusive = false } } },
+        onRoomsClick = { navController.navigate("room_availability") { popUpTo("student_dashboard") { inclusive = false } } },
+        onFinanceClick = { navController.navigate("finance_dashboard") { popUpTo("student_dashboard") { inclusive = false } } },
+        onSupportClick = { navController.navigate("complaints_list") { popUpTo("student_dashboard") { inclusive = false } } },
+        onAnnouncementsClick = { navController.navigate("announcements") { popUpTo("student_dashboard") { inclusive = false } } },
         modifier = Modifier.fillMaxSize()
       )
     }
 
     composable("room_availability") {
       RoomAvailabilityScreen(
-        onHomeClick = { navController.navigate("student_dashboard") },
-        onFinanceClick = { navController.navigate("finance_dashboard") },
-        onProfileClick = { navController.navigate("profile") },
-        onSupportClick = { navController.navigate("complaints_list") },
+        onHomeClick = { 
+          if (!navController.popBackStack("student_dashboard", inclusive = false)) {
+            navController.navigate("student_dashboard") { popUpTo("student_dashboard") { inclusive = true } }
+          }
+        },
+        onFinanceClick = { navController.navigate("finance_dashboard") { popUpTo("student_dashboard") { inclusive = false } } },
+        onProfileClick = { navController.navigate("profile") { popUpTo("student_dashboard") { inclusive = false } } },
+        onSupportClick = { navController.navigate("complaints_list") { popUpTo("student_dashboard") { inclusive = false } } },
         onApplyClick = { roomId -> navController.navigate("hostel_application") },
         modifier = Modifier.fillMaxSize()
       )
@@ -372,20 +376,28 @@ fun MainNavigation() {
 
     composable("finance_dashboard") {
       FinanceDashboardScreen(
-        onHomeClick = { navController.navigate("student_dashboard") },
-        onRoomsClick = { navController.navigate("room_availability") },
-        onProfileClick = { navController.navigate("profile") },
-        onSupportClick = { navController.navigate("complaints_list") },
+        onHomeClick = { 
+          if (!navController.popBackStack("student_dashboard", inclusive = false)) {
+            navController.navigate("student_dashboard") { popUpTo("student_dashboard") { inclusive = true } }
+          }
+        },
+        onRoomsClick = { navController.navigate("room_availability") { popUpTo("student_dashboard") { inclusive = false } } },
+        onProfileClick = { navController.navigate("profile") { popUpTo("student_dashboard") { inclusive = false } } },
+        onSupportClick = { navController.navigate("complaints_list") { popUpTo("student_dashboard") { inclusive = false } } },
         modifier = Modifier.fillMaxSize()
       )
     }
 
     composable("complaints_list") {
       ComplaintsListScreen(
-        onHomeClick = { navController.navigate("student_dashboard") },
-        onRoomsClick = { navController.navigate("room_availability") },
-        onFinanceClick = { navController.navigate("finance_dashboard") },
-        onProfileClick = { navController.navigate("profile") },
+        onHomeClick = { 
+          if (!navController.popBackStack("student_dashboard", inclusive = false)) {
+            navController.navigate("student_dashboard") { popUpTo("student_dashboard") { inclusive = true } }
+          }
+        },
+        onRoomsClick = { navController.navigate("room_availability") { popUpTo("student_dashboard") { inclusive = false } } },
+        onFinanceClick = { navController.navigate("finance_dashboard") { popUpTo("student_dashboard") { inclusive = false } } },
+        onProfileClick = { navController.navigate("profile") { popUpTo("student_dashboard") { inclusive = false } } },
         onNewComplaintClick = { navController.navigate("new_complaint") },
         onComplaintClick = { id -> navController.navigate("complaint_detail/$id") },
         modifier = Modifier.fillMaxSize()
@@ -395,7 +407,7 @@ fun MainNavigation() {
     composable("hostel_application") {
       HostelApplicationScreen(
         onBackClick = { navController.popBackStack() },
-        onSubmitClick = { navController.navigate("student_dashboard") },
+        onSubmitClick = { navController.popBackStack("student_dashboard", inclusive = false) },
         modifier = Modifier.fillMaxSize()
       )
     }
@@ -410,7 +422,7 @@ fun MainNavigation() {
     composable("new_complaint") {
       NewComplaintScreen(
         onBackClick = { navController.popBackStack() },
-        onSubmitClick = { navController.navigate("complaints_list") },
+        onSubmitClick = { navController.popBackStack("complaints_list", inclusive = false) },
         modifier = Modifier.fillMaxSize()
       )
     }
@@ -443,10 +455,14 @@ fun MainNavigation() {
 
     composable("profile") {
       ProfileScreen(
-        onHomeClick = { navController.navigate("student_dashboard") },
-        onRoomsClick = { navController.navigate("room_availability") },
-        onFinanceClick = { navController.navigate("finance_dashboard") },
-        onSupportClick = { navController.navigate("complaints_list") },
+        onHomeClick = { 
+          if (!navController.popBackStack("student_dashboard", inclusive = false)) {
+            navController.navigate("student_dashboard") { popUpTo("student_dashboard") { inclusive = true } }
+          }
+        },
+        onRoomsClick = { navController.navigate("room_availability") { popUpTo("student_dashboard") { inclusive = false } } },
+        onFinanceClick = { navController.navigate("finance_dashboard") { popUpTo("student_dashboard") { inclusive = false } } },
+        onSupportClick = { navController.navigate("complaints_list") { popUpTo("student_dashboard") { inclusive = false } } },
         onSignOutClick = {
           auth.signOut()
           val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN).build()

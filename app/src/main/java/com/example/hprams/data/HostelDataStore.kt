@@ -582,26 +582,38 @@ object HostelDataStore {
     }
 
     fun saveRoomChange(request: RoomChangeRequest) {
+        val idx = roomChangeRequests.indexOfFirst { it.id == request.id }
+        if (idx >= 0) roomChangeRequests[idx] = request else roomChangeRequests.add(0, request)
         dbRef.child("roomChangeRequests").child(request.id).setValue(request)
     }
 
     fun saveComplaint(ticket: ComplaintTicket) {
+        val idx = complaints.indexOfFirst { it.id == ticket.id }
+        if (idx >= 0) complaints[idx] = ticket else complaints.add(0, ticket)
         dbRef.child("complaints").child(ticket.id).setValue(ticket)
     }
 
     fun saveGatePass(request: GatePassRequest) {
+        val idx = gatePassRequests.indexOfFirst { it.id == request.id }
+        if (idx >= 0) gatePassRequests[idx] = request else gatePassRequests.add(0, request)
         dbRef.child("gatePassRequests").child(request.id).setValue(request)
     }
 
     fun saveAnnouncement(announcement: AnnouncementItem) {
+        val idx = announcements.indexOfFirst { it.id == announcement.id }
+        if (idx >= 0) announcements[idx] = announcement else announcements.add(0, announcement)
         dbRef.child("announcements").child(announcement.id).setValue(announcement)
     }
 
     fun saveFine(fine: FineItem) {
+        val idx = fines.indexOfFirst { it.id == fine.id }
+        if (idx >= 0) fines[idx] = fine else fines.add(0, fine)
         dbRef.child("fines").child(fine.id).setValue(fine)
     }
 
     fun savePayment(payment: PaymentItem) {
+        val idx = payments.indexOfFirst { it.paymentId == payment.paymentId }
+        if (idx >= 0) payments[idx] = payment else payments.add(0, payment)
         dbRef.child("payments").child(payment.paymentId).setValue(payment)
     }
 
