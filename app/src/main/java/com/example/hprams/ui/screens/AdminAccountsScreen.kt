@@ -707,100 +707,148 @@ fun AdminAccountsScreen(
                             colors = CardDefaults.cardColors(containerColor = Color.White),
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
+                                // Top Row: Avatar + Name & Roll + Status Badge + Action Buttons
                                 Row(
+                                    modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(46.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                when (user.role) {
-                                                    "Warden" -> Color(0xFFFAF5FF)
-                                                    "Security" -> Color(0xFFFFF1F2)
-                                                    else -> Color(0xFFEEF2FF)
-                                                }
-                                            ),
-                                        contentAlignment = Alignment.Center
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
                                     ) {
-                                        Text(
-                                            user.name.firstOrNull()?.toString() ?: "U",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 18.sp,
-                                            color = when (user.role) {
-                                                "Warden" -> Color(0xFF8B5CF6)
-                                                "Security" -> Color(0xFFF43F5E)
-                                                else -> Color(0xFF6366F1)
-                                            }
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    when (user.role) {
+                                                        "Warden" -> Color(0xFFFAF5FF)
+                                                        "Security" -> Color(0xFFFFF1F2)
+                                                        else -> Color(0xFFEEF2FF)
+                                                    }
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
                                             Text(
-                                                user.name,
+                                                user.name.firstOrNull()?.toString() ?: "U",
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 15.sp,
-                                                color = Color(0xFF0F172A)
+                                                fontSize = 18.sp,
+                                                color = when (user.role) {
+                                                    "Warden" -> Color(0xFF8B5CF6)
+                                                    "Security" -> Color(0xFFF43F5E)
+                                                    else -> Color(0xFF6366F1)
+                                                }
                                             )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(
-                                                        if (user.approvalStatus == "Approved") Color(0xFFECFDF5)
-                                                        else Color(0xFFFFFBEB)
-                                                    )
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    user.approvalStatus,
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (user.approvalStatus == "Approved") Color(0xFF10B981) else Color(0xFFD97706)
-                                                )
-                                            }
                                         }
 
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            "${user.role} • ${user.roll}",
-                                            fontSize = 12.sp,
-                                            color = Color(0xFF64748B)
-                                        )
-                                        if (user.role == "Student") {
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                "${user.block} • Room ${user.room} • ${user.email}",
-                                                fontSize = 11.sp,
-                                                color = Color(0xFF94A3B8)
+                                                text = user.name,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp,
+                                                color = Color(0xFF0F172A),
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                             )
-                                        } else {
+                                            Spacer(modifier = Modifier.height(2.dp))
                                             Text(
-                                                user.email,
-                                                fontSize = 11.sp,
-                                                color = Color(0xFF94A3B8)
+                                                text = "${user.role} • ${user.roll}",
+                                                fontSize = 12.sp,
+                                                color = Color(0xFF64748B),
+                                                fontWeight = FontWeight.Medium
                                             )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(
+                                                    if (user.approvalStatus.equals("Approved", ignoreCase = true)) Color(0xFFECFDF5)
+                                                    else Color(0xFFFFFBEB)
+                                                )
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = user.approvalStatus,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (user.approvalStatus.equals("Approved", ignoreCase = true)) Color(0xFF10B981) else Color(0xFFD97706)
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = { openEditDialog(user) },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color(0xFF6366F1), modifier = Modifier.size(18.dp))
+                                        }
+
+                                        IconButton(
+                                            onClick = { showDeleteConfirmDialog = user },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
                                         }
                                     }
                                 }
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    IconButton(onClick = { openEditDialog(user) }) {
-                                        Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color(0xFF6366F1), modifier = Modifier.size(20.dp))
+                                HorizontalDivider(color = Color(0xFFF1F5F9))
+
+                                // Bottom Row: Room badge & Email contact
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (user.role == "Student") {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(Color(0xFFF8FAFC))
+                                                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(6.dp))
+                                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                        ) {
+                                            Text(
+                                                text = "${user.block} • Room ${user.room}",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color(0xFF334155)
+                                            )
+                                        }
+                                    } else {
+                                        Text(
+                                            text = "Campus Staff",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFF64748B)
+                                        )
                                     }
-                                    IconButton(onClick = { showDeleteConfirmDialog = user }) {
-                                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = Color(0xFFEF4444), modifier = Modifier.size(20.dp))
-                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Text(
+                                        text = user.email,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF64748B),
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
                                 }
                             }
                         }
