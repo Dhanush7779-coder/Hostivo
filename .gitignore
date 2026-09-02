@@ -1,28 +1,39 @@
 *.iml
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+local.properties
+/.idea/
+.idea/
 .DS_Store
+Thumbs.db
 /build
+build/
+app/build/
 /captures
 .externalNativeBuild
 .cxx
-local.properties
 
-# Firebase configuration
+# Firebase configuration & credentials
 google-services.json
 app/google-services.json
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
 
 # Keystores & sensitive build keys
 *.jks
 *.keystore
+*.p8
+*.p12
+*.pem
+*.key
 secrets.properties
+signing.properties
 
-# Kotlin compiler daemon/temporary sessions
+# Kotlin compiler daemon/temporary sessions & logs
 .kotlin/
 *.log
+
+# Environment variables & secrets
+.env
+.env.*
